@@ -1,0 +1,33 @@
+{
+  "name": "@analytics-system/scheduler",
+  "version": "1.0.0",
+  "description": "Cron daemon for automated analytics processing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "analytics-scheduler": "dist/daemon.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "clean": "rm -rf dist",
+    "lint": "eslint src/**/*.js",
+    "start": "node dist/daemon.js"
+  },
+  "dependencies": {
+    "@analytics-system/shared": "^1.0.0",
+    "@analytics-system/parser": "^1.0.0",
+    "node-cron": "^3.0.3",
+    "chokidar": "^3.5.3",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "jest": "^29.0.0",
+    "fast-check": "^3.15.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

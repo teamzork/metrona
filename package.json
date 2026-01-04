@@ -1,0 +1,33 @@
+{
+  "name": "metrona-analytics-system",
+  "version": "1.0.0",
+  "description": "Self-hosted, privacy-focused web analytics system",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "clean": "npm run clean --workspaces",
+    "publish:all": "npm run publish --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "jest": "^29.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "analytics",
+    "privacy",
+    "self-hosted",
+    "nginx",
+    "web-analytics"
+  ],
+  "author": "Metrona Analytics",
+  "license": "MIT"
+}

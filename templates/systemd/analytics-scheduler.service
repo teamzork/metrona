@@ -1,0 +1,31 @@
+[Unit]
+Description=Metrona Analytics Scheduler
+Documentation=https://github.com/metrona/analytics-system
+After=network.target
+
+[Service]
+Type=simple
+User=analytics
+Group=analytics
+WorkingDirectory=/opt/analytics-system
+ExecStart=/usr/bin/node /opt/analytics-system/packages/scheduler/dist/daemon.js
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=analytics-scheduler
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/analytics /var/log/nginx /etc/analytics
+
+# Environment
+Environment=NODE_ENV=production
+Environment=CONFIG_PATH=/etc/analytics/config.yaml
+
+[Install]
+WantedBy=multi-user.target
