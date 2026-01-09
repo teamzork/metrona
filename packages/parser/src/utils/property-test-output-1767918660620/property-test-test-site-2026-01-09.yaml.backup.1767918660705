@@ -1,0 +1,95 @@
+metadata:
+  generatedAt: '2026-01-09T00:31:00.678Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: test-site
+    name: Test Site
+    domain: example.com
+    timezone: America/New_York
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+summary:
+  totalPageviews: 6116
+  uniqueVisitors: 2
+  totalPages: 97
+  totalReferrerDomains: 8
+  avgPageviewsPerSession: 1.3625558614730835
+  peakTrafficDay: +266338-05-06T16:00:06.822Z
+  peakTrafficPageviews: 8
+  directTraffic: 2
+  referralTraffic: 7
+  dataRange:
+    start: null
+    end: -2008846195
+timeSeries:
+  hourly:
+    groupBy: hourly
+    timezone: America/New_York
+    totalPageviews: 8
+    uniqueVisitors: 2792
+    buckets:
+      - timestamp: '-215503-04-14T18:44:43.268Z'
+        pageviews: 5
+        uniqueVisitors: 0
+      - timestamp: '-006446-06-09T16:41:52.985Z'
+        pageviews: 7
+        uniqueVisitors: 45
+      - timestamp: '1969-12-31T23:59:59.982Z'
+        pageviews: 27
+        uniqueVisitors: 50
+  daily:
+    groupBy: daily
+    timezone: America/New_York
+    totalPageviews: 9
+    uniqueVisitors: 6
+    buckets:
+      - timestamp: '-045242-04-27T14:59:52.092Z'
+        pageviews: 28
+        uniqueVisitors: 33
+  monthly:
+    groupBy: monthly
+    timezone: UTC
+    totalPageviews: 1064
+    uniqueVisitors: 8
+    buckets:
+      - timestamp: '-222905-06-20T12:46:11.094Z'
+        pageviews: 94
+        uniqueVisitors: 0
+      - timestamp: '-271821-04-20T00:00:00.042Z'
+        pageviews: 77
+        uniqueVisitors: 47
+topContent:
+  totalPages: 98
+  totalPageviews: 4442
+  uniqueVisitors: 6
+  pages:
+    - path: /home
+      pageviews: 12
+      uniqueVisitors: 12
+      percentage: 12.08187198638916
+      bytes: 7157
+      avgBytesPerView: 4515
+      firstSeen: +099944-07-25T16:45:25.956Z
+      lastSeen: +202200-09-07T17:56:17.024Z
+referrers:
+  totalReferrerDomains: 2
+  totalReferrals: 1000
+  directTraffic: 400
+  domains:
+    - domain: google.com
+      totalReferrals: 66
+      percentage: 0.3312905430793762
+      topPaths:
+        - url: https://google.com/search
+          count: 7
+          percentage: 0.22712092101573944
+    - domain: facebook.com
+      totalReferrals: 76
+      percentage: 49.99991226196289
+      topPaths:
+        - url: https://google.com/search
+          count: 10
+          percentage: 0.5847676396369934

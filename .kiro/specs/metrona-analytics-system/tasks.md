@@ -84,13 +84,13 @@ This implementation plan breaks down the Metrona Analytics System into discrete 
     - **Validates: Requirements 7.2, 7.3, 7.4, 7.5**
 
 - [ ] 4. Create YAML output generation
-  - [ ] 4.1 Implement YAML dataset writer
+  - [x] 4.1 Implement YAML dataset writer
     - Create structured YAML output with consistent schema
     - Include generation timestamps and site identification
     - Handle incremental updates to existing data
     - _Requirements: 2.4, 7.1, 7.6, 9.6_
 
-  - [ ] 4.2 Write property test for YAML output structure
+  - [x] 4.2 Write property test for YAML output structure
     - **Property 10: YAML Output Structure Consistency**
     - **Validates: Requirements 2.4, 7.1, 7.6**
 

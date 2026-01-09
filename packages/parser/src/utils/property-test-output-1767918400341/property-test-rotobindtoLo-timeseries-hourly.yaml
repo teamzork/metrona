@@ -1,0 +1,26 @@
+metadata:
+  generatedAt: '2026-01-09T00:26:40.408Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: rotobindtoLo
+    name: vV9HQ2E_sich
+    domain: ef.xkz
+    timezone: UTC
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+timeSeries:
+  period: hourly
+  timezone: UTC
+  totalPageviews: 0
+  uniqueVisitors: 0
+  buckets: []
+  - timestamp: '1969-12-31T23:59:59.967Z'
+      pageviews: 950
+      uniqueVisitors: 3
+    - timestamp: '-271821-04-20T00:00:00.036Z'
+      pageviews: 762
+      uniqueVisitors: 2
+eVisitors: 2

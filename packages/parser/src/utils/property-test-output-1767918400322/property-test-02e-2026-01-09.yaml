@@ -1,0 +1,55 @@
+metadata:
+  generatedAt: '2026-01-09T00:26:40.392Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: 02e
+    name: kxV
+    domain: 3ii18uz.2hdlq2mlicf.fxq
+    timezone: UTC
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+summary:
+  totalPageviews: 207
+  uniqueVisitors: 68
+  totalPages: 0
+  totalReferrerDomains: 0
+  avgPageviewsPerSession: 0
+  peakTrafficDay: null
+  peakTrafficPageviews: 0
+  directTraffic: 0
+  referralTraffic: 0
+  dataRange:
+    start: null
+    end: null
+timeSeries:
+  hourly:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 0
+    uniqueVisitors: 0
+    buckets: []
+  daily:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 0
+    uniqueVisitors: 0
+    buckets: []
+  monthly:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 0
+    uniqueVisitors: 0
+    buckets: []
+topContent:
+  totalPages: 0
+  totalPageviews: 0
+  uniqueVisitors: 0
+  pages: []
+referrers:
+  totalReferrerDomains: 0
+  totalReferrals: 0
+  directTraffic: 0
+  domains: []

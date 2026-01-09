@@ -1,0 +1,28 @@
+metadata:
+  generatedAt: '2026-01-09T00:31:00.729Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: demo-site
+    name: Test Site
+    domain: demo.com
+    timezone: UTC
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+timeSeries:
+  period: daily
+  timezone: America/New_York
+  totalPageviews: 52
+  uniqueVisitors: 4
+  buckets:
+    - timestamp: +016314-05-06T02:54:20.266Z
+      pageviews: 63
+      uniqueVisitors: 50
+    - timestamp: '-004507-04-24T09:16:38.995Z'
+      pageviews: 29
+      uniqueVisitors: 4
+    - timestamp: +128457-10-20T10:11:12.544Z
+      pageviews: 65
+      uniqueVisitors: 44

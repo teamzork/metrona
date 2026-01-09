@@ -1,0 +1,73 @@
+metadata:
+  generatedAt: '2026-01-09T00:26:40.488Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: precision-test
+    name: Precision Test
+    domain: test.example.com
+    timezone: UTC
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+summary:
+  totalPageviews: 0
+  uniqueVisitors: 0
+  totalPages: 0
+  totalReferrerDomains: 0
+  avgPageviewsPerSession: 0
+  peakTrafficDay: null
+  peakTrafficPageviews: 0
+  directTraffic: 0
+  referralTraffic: 0
+  dataRange:
+    start: null
+    end: null
+timeSeries:
+  hourly:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 0
+    uniqueVisitors: 0
+    buckets: []
+  daily:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 0
+    uniqueVisitors: 0
+    buckets: []
+  monthly:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 0
+    uniqueVisitors: 0
+    buckets: []
+topContent:
+  totalPages: 0
+  totalPageviews: 0
+  uniqueVisitors: 0
+  pages:
+    - path: /test
+      pageviews: 9324
+      percentage: 12.79188060760498
+      bytes: 289542
+      avgBytesPerView: 0
+    - path: /test
+      pageviews: 7147
+      percentage: 86.21261596679688
+      bytes: 999998
+      avgBytesPerView: 0
+    - path: /test
+      pageviews: 8081
+      percentage: 0.010000011883676052
+      bytes: 904429
+      avgBytesPerView: 0
+referrers:
+  totalReferrerDomains: 0
+  totalReferrals: 0
+  directTraffic: 0
+  domains: []
+ic: 0
+  domains: []
+

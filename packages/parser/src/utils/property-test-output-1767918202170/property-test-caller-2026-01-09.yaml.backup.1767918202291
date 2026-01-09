@@ -1,0 +1,197 @@
+metadata:
+  generatedAt: '2026-01-09T00:23:22.236Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: caller
+    name: '?x{z'
+    domain: 5ial.ao
+    timezone: Asia/Tokyo
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+summary:
+  totalPageviews: 584626
+  uniqueVisitors: 59818
+  totalPages: 0
+  totalReferrerDomains: 6
+  avgPageviewsPerSession: 1.8216880036222622e-44
+  peakTrafficDay: +043915-11-30T23:40:28.588Z
+  peakTrafficPageviews: 6900
+  directTraffic: 49999
+  referralTraffic: 18402
+  dataRange:
+    start: null
+    end: 1
+timeSeries:
+  hourly:
+    groupBy: hourly
+    timezone: America/New_York
+    totalPageviews: 999998
+    uniqueVisitors: 44228
+    buckets:
+      - timestamp: '1970-01-01T00:00:00.025Z'
+        pageviews: 9994
+        uniqueVisitors: 2002
+  daily:
+    groupBy: daily
+    timezone: UTC
+    totalPageviews: 161102
+    uniqueVisitors: 37626
+    buckets:
+      - timestamp: +126608-07-08T07:28:18.580Z
+        pageviews: 554
+        uniqueVisitors: 4999
+      - timestamp: '-271821-04-20T00:00:00.034Z'
+        pageviews: 9991
+        uniqueVisitors: 10
+      - timestamp: '1970-01-01T00:00:00.025Z'
+        pageviews: 8849
+        uniqueVisitors: 1127
+      - timestamp: '1970-01-01T00:00:00.023Z'
+        pageviews: 8007
+        uniqueVisitors: 3069
+      - timestamp: '-205785-10-18T20:20:24.316Z'
+        pageviews: 1
+        uniqueVisitors: 1500
+      - timestamp: +083486-07-13T17:29:41.884Z
+        pageviews: 883
+        uniqueVisitors: 10
+      - timestamp: +250828-03-07T16:39:21.796Z
+        pageviews: 8977
+        uniqueVisitors: 9
+      - timestamp: '-271821-04-20T00:00:00.002Z'
+        pageviews: 12
+        uniqueVisitors: 3632
+      - timestamp: '1969-12-31T23:59:59.999Z'
+        pageviews: 8214
+        uniqueVisitors: 4669
+  monthly:
+    groupBy: monthly
+    timezone: UTC
+    totalPageviews: 676018
+    uniqueVisitors: 12
+    buckets:
+      - timestamp: '-237525-02-09T20:09:30.409Z'
+        pageviews: 7999
+        uniqueVisitors: 9
+      - timestamp: '1969-12-31T23:59:59.983Z'
+        pageviews: 7398
+        uniqueVisitors: 10
+      - timestamp: '-071636-09-21T04:55:44.063Z'
+        pageviews: 9997
+        uniqueVisitors: 7
+      - timestamp: '1970-01-01T00:00:00.018Z'
+        pageviews: 2730
+        uniqueVisitors: 6
+      - timestamp: '1969-12-31T23:59:59.994Z'
+        pageviews: 4045
+        uniqueVisitors: 0
+topContent:
+  totalPages: 9987
+  totalPageviews: 296690
+  uniqueVisitors: 95729
+  pages:
+    - path: /S
+      pageviews: 8856
+      uniqueVisitors: 4445
+      percentage: 0.0003660306101664901
+      bytes: 780221
+      avgBytesPerView: 78047
+      firstSeen: '-005800-04-28T03:33:25.131Z'
+      lastSeen: '-186224-01-23T05:45:56.929Z'
+referrers:
+  totalReferrerDomains: 0
+  totalReferrals: 77078
+  directTraffic: 4
+  domains:
+    - domain: d15o5mm.bhj
+      totalReferrals: 3168
+      percentage: 1.2119709749680574e-11
+      topPaths:
+        - url: http://n.kt/D(
+          count: 50
+          percentage: 3.085575095693837e-35
+    - domain: nkkn68yt1.jiw
+      totalReferrals: 1418
+      percentage: 1.1981596401520614e-18
+      topPaths: []
+    - domain: 6z1hpestpfvh.cj
+      totalReferrals: 9761
+      percentage: 1.750911741453355e-22
+      topPaths:
+        - url: http://fiz.dpw/R88
+          count: 702
+          percentage: 6.706204635934052e-15
+        - url: http://dp0x.hc89uebr43j.dcm/:/_/////)///
+          count: 584
+          percentage: 7.156607944528762e-19
+        - url: http://uya8y3ka1z.xc/8RpuL,)o*
+          count: 519
+          percentage: 6.68534147328935e-16
+        - url: http://rdttjz.zyz/%F2%95%98%8C/9/K//X
+          count: 892
+          percentage: 1.8978662391644363e-11
+        - url: http://irqs993.inr/1/q//v//B
+          count: 743
+          percentage: 1.3114508837994802e-36
+    - domain: y.lutpic7.epz
+      totalReferrals: 8185
+      percentage: 2.018641063302501e-38
+      topPaths:
+        - url: https://r1vx9g0tq.qs4d36tcjjk.xep/C%F1%AD%82%87IaDZVr
+          count: 883
+          percentage: 0.00000521468336955877
+        - url: http://nx6i3.ym/G*)%F2%9E%AF%B4x:Za%F0%B6%83%8BH
+          count: 848
+          percentage: 7.532762102018334e-23
+        - url: https://uc1h5f5.n7kd8seoj.rbg
+          count: 341
+          percentage: 1.066887734841454e-13
+        - url: https://khar.vpcnm7hh3.dgz
+          count: 412
+          percentage: 1.1727520913968474e-27
+        - url: https://gnn2rjhec7.ab
+          count: 887
+          percentage: 0.0000016601378547420609
+    - domain: 42.2lv8ogc2yza.trl
+      totalReferrals: 5818
+      percentage: 1.2515361399815006e-30
+      topPaths:
+        - url: http://joyx3s2.us/qPS7b
+          count: 93
+          percentage: 3.39133936228208e-37
+    - domain: z.qf1.ngc
+      totalReferrals: 5240
+      percentage: 3.4855452308423915e-19
+      topPaths:
+        - url: https://5.4qimidihc.dzv/hN%F0%B5%8C%8ChBx%F4%89%A4%903
+          count: 251
+          percentage: 1.2257536578553928e-36
+        - url: http://2w9wm.st
+          count: 772
+          percentage: 2.5433761632894165e-22
+        - url: http://zo393boz3ujy.u.wmu/,/1//1
+          count: 432
+          percentage: 1.3241717589198357e-24
+        - url: http://uk076qtn.pu/
+          count: 420
+          percentage: 0.00009520264575257897
+        - url: http://zrrsgor5p.d4.lxk/I//C//W/0/d
+          count: 987
+          percentage: 3.5464213357331447e-16
+    - domain: w5bl1y-v.b3.xi
+      totalReferrals: 1153
+      percentage: 0.00038282517925836146
+      topPaths:
+        - url: http://gth8luf.dfhg4pzwx.qje/i%F2%9F%86%9D4b$:fQ
+          count: 577
+          percentage: 1.6601469683555706e-14
+        - url: https://nwqq.3.uje
+          count: 385
+          percentage: 2.216858475350743e-36
+    - domain: 6.md
+      totalReferrals: 2079
+      percentage: 0.01271294429898262
+      topPaths: []

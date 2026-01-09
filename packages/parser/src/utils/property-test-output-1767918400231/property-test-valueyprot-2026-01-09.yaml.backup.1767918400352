@@ -1,0 +1,121 @@
+metadata:
+  generatedAt: '2026-01-09T00:26:40.319Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: valueyprot
+    name: bind
+    domain: vd7ase8zc.sl
+    timezone: America/New_York
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+summary:
+  totalPageviews: 13
+  uniqueVisitors: 34901
+  totalPages: 267
+  totalReferrerDomains: 3
+  avgPageviewsPerSession: 1.432215452473062e-38
+  peakTrafficDay: -056090-05-20T03:07:59.438Z
+  peakTrafficPageviews: 11
+  directTraffic: 5076
+  referralTraffic: 8
+  dataRange:
+    start: null
+    end: null
+timeSeries:
+  hourly:
+    groupBy: hourly
+    timezone: Europe/London
+    totalPageviews: 10
+    uniqueVisitors: 49994
+    buckets:
+      - timestamp: '-029444-10-05T11:16:16.905Z'
+        pageviews: 20
+        uniqueVisitors: 243
+      - timestamp: +267865-03-13T10:42:53.048Z
+        pageviews: 359
+        uniqueVisitors: 185
+      - timestamp: '-163508-06-03T15:34:43.449Z'
+        pageviews: 504
+        uniqueVisitors: 244
+      - timestamp: +028255-12-27T10:20:48.334Z
+        pageviews: 508
+        uniqueVisitors: 1
+      - timestamp: '-017023-07-30T10:58:27.504Z'
+        pageviews: 950
+        uniqueVisitors: 226
+      - timestamp: '-115016-05-27T18:11:32.595Z'
+        pageviews: 409
+        uniqueVisitors: 58
+  daily:
+    groupBy: daily
+    timezone: America/New_York
+    totalPageviews: 2
+    uniqueVisitors: 50000
+    buckets: []
+  monthly:
+    groupBy: monthly
+    timezone: Europe/London
+    totalPageviews: 1
+    uniqueVisitors: 49991
+    buckets:
+      - timestamp: '-227640-12-13T21:43:37.473Z'
+        pageviews: 650
+        uniqueVisitors: 96
+      - timestamp: '-143249-05-27T20:19:10.490Z'
+        pageviews: 400
+        uniqueVisitors: 12
+topContent:
+  totalPages: 1000
+  totalPageviews: 8
+  uniqueVisitors: 1
+  pages:
+    - path: /803M
+      pageviews: 251
+      uniqueVisitors: 308
+      percentage: 9.032324328472896e-7
+      bytes: 38385
+      avgBytesPerView: 6804
+      firstSeen: +146463-08-03T18:50:46.012Z
+      lastSeen: +194048-08-27T16:49:38.150Z
+    - path: /sk4OLJ
+      pageviews: 873
+      uniqueVisitors: 68
+      percentage: 1.3072300503134e-16
+      bytes: 29642
+      avgBytesPerView: 9231
+      firstSeen: '-047544-11-15T09:37:48.442Z'
+      lastSeen: +071803-07-26T00:06:26.560Z
+    - path: /
+      pageviews: 573
+      uniqueVisitors: 142
+      percentage: 1.5891831184333682e-9
+      bytes: 26219
+      avgBytesPerView: 7100
+      firstSeen: '-127260-01-06T04:43:41.491Z'
+      lastSeen: +075522-12-26T04:14:07.920Z
+referrers:
+  totalReferrerDomains: 1
+  totalReferrals: 4990
+  directTraffic: 7
+  domains:
+    - domain: 8unlpnwhcxw7.ac
+      totalReferrals: 340
+      percentage: 3.5032461608120427e-44
+      topPaths:
+        - url: http://80hk4v.bs/B/p/d/K/
+          count: 74
+          percentage: 5.7643609046936035
+    - domain: kd.ce
+      totalReferrals: 4
+      percentage: 3.913107542493897e-25
+      topPaths:
+        - url: http://8dcz7c-e7hk.f.ae/I//f//s/
+          count: 7
+          percentage: 99.99983978271484
+    - domain: 4wrhvr.lgqivwms0-y.ows
+      totalReferrals: 380
+      percentage: 0.000044318498112261295
+      topPaths: []

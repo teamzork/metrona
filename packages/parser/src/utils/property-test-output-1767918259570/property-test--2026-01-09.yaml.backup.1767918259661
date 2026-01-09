@@ -1,0 +1,195 @@
+metadata:
+  generatedAt: '2026-01-09T00:24:19.631Z'
+  generatedBy: Metrona Analytics System
+  version: 1.0.0
+  site:
+    id: default
+    name: a
+    domain: 4.cu
+    timezone: UTC
+  schema:
+    version: '1.0'
+    format: yaml
+    description: Metrona Analytics Dataset
+summary:
+  totalPageviews: 1
+  uniqueVisitors: 93254
+  totalPages: 9999
+  totalReferrerDomains: 8
+  avgPageviewsPerSession: 2.1240927311309832e-13
+  peakTrafficDay: 1969-12-31T23:59:59.954Z
+  peakTrafficPageviews: 12
+  directTraffic: 23321
+  referralTraffic: 31044
+  dataRange:
+    start: 7
+    end: 4
+timeSeries:
+  hourly:
+    groupBy: hourly
+    timezone: UTC
+    totalPageviews: 16
+    uniqueVisitors: 99998
+    buckets:
+      - timestamp: +212078-12-28T15:28:23.804Z
+        pageviews: 171
+        uniqueVisitors: 4412
+      - timestamp: +141082-11-26T14:53:56.132Z
+        pageviews: 621
+        uniqueVisitors: 4392
+      - timestamp: +025983-08-04T11:55:39.048Z
+        pageviews: 3759
+        uniqueVisitors: 3435
+      - timestamp: '9823-06-29T22:43:00.077Z'
+        pageviews: 735
+        uniqueVisitors: 3910
+  daily:
+    groupBy: daily
+    timezone: America/New_York
+    totalPageviews: 912318
+    uniqueVisitors: 99603
+    buckets:
+      - timestamp: '-100091-05-04T13:18:32.645Z'
+        pageviews: 9983
+        uniqueVisitors: 2382
+  monthly:
+    groupBy: monthly
+    timezone: Europe/London
+    totalPageviews: 5
+    uniqueVisitors: 53575
+    buckets:
+      - timestamp: '-106674-04-07T20:33:28.649Z'
+        pageviews: 1071
+        uniqueVisitors: 3766
+      - timestamp: +258931-06-16T17:26:30.480Z
+        pageviews: 9735
+        uniqueVisitors: 3235
+      - timestamp: '-201205-03-02T00:04:18.601Z'
+        pageviews: 4925
+        uniqueVisitors: 1439
+      - timestamp: '8602-06-29T23:54:52.746Z'
+        pageviews: 6945
+        uniqueVisitors: 640
+      - timestamp: +244312-03-29T12:52:05.738Z
+        pageviews: 1716
+        uniqueVisitors: 4882
+topContent:
+  totalPages: 91
+  totalPageviews: 999994
+  uniqueVisitors: 84000
+  pages:
+    - path: /AC6
+      pageviews: 7167
+      uniqueVisitors: 2963
+      percentage: 1.6173366380537951e-22
+      bytes: 293648
+      avgBytesPerView: 9285
+      firstSeen: +143087-09-01T20:28:43.400Z
+      lastSeen: '-049310-03-20T05:33:21.350Z'
+    - path: /8jS
+      pageviews: 1774
+      uniqueVisitors: 1302
+      percentage: 1.1093871199259345e-33
+      bytes: 500604
+      avgBytesPerView: 72049
+      firstSeen: +214003-03-04T06:01:03.012Z
+      lastSeen: +162596-04-21T05:05:13.916Z
+    - path: /
+      pageviews: 7536
+      uniqueVisitors: 218
+      percentage: 5.784512292803557e-22
+      bytes: 238404
+      avgBytesPerView: 51153
+      firstSeen: '-117242-12-17T11:51:58.556Z'
+      lastSeen: +063106-10-30T08:17:13.098Z
+    - path: /IHYQm
+      pageviews: 2704
+      uniqueVisitors: 2497
+      percentage: 0.33922043442726135
+      bytes: 573614
+      avgBytesPerView: 58624
+      firstSeen: +011386-05-16T08:23:09.007Z
+      lastSeen: '-154224-01-26T07:54:05.813Z'
+    - path: /TR17r
+      pageviews: 6437
+      uniqueVisitors: 2884
+      percentage: 1.8575163958081668e-19
+      bytes: 928634
+      avgBytesPerView: 64953
+      firstSeen: +104553-01-18T11:31:21.566Z
+      lastSeen: +275067-01-19T12:10:05.328Z
+    - path: /H
+      pageviews: 5573
+      uniqueVisitors: 3567
+      percentage: 4.690277682150809e-39
+      bytes: 780021
+      avgBytesPerView: 37867
+      firstSeen: '-179512-07-06T22:38:26.184Z'
+      lastSeen: '-004214-12-17T04:31:49.703Z'
+    - path: /wg
+      pageviews: 8347
+      uniqueVisitors: 2831
+      percentage: 0.11160501837730408
+      bytes: 173296
+      avgBytesPerView: 86284
+      firstSeen: '-133791-01-25T04:00:29.041Z'
+      lastSeen: '-188618-05-20T02:03:31.771Z'
+    - path: /AFM
+      pageviews: 5558
+      uniqueVisitors: 3917
+      percentage: 3.0952823447784675e-14
+      bytes: 544401
+      avgBytesPerView: 86872
+      firstSeen: +154111-11-15T20:22:58.576Z
+      lastSeen: '-085387-09-20T17:06:42.676Z'
+    - path: /nc
+      pageviews: 9665
+      uniqueVisitors: 3711
+      percentage: 1.715008548576859e-21
+      bytes: 738191
+      avgBytesPerView: 24386
+      firstSeen: +037446-08-18T23:39:14.424Z
+      lastSeen: '-054774-05-18T16:54:40.760Z'
+    - path: /GO6RfL
+      pageviews: 36
+      uniqueVisitors: 2289
+      percentage: 1.0046636611559575e-15
+      bytes: 877557
+      avgBytesPerView: 28161
+      firstSeen: +201925-06-30T06:18:57.440Z
+      lastSeen: '-134314-12-19T11:04:52.651Z'
+referrers:
+  totalReferrerDomains: 6
+  totalReferrals: 6
+  directTraffic: 34333
+  domains:
+    - domain: 7l4.dd
+      totalReferrals: 3300
+      percentage: 1.6127131163996857e-24
+      topPaths:
+        - url: http://qzlv.702zfkiu738o.hg
+          count: 61
+          percentage: 1.0451423754220812e-10
+        - url: https://4-g.s.bbq
+          count: 650
+          percentage: 2.2187347131009845e-39
+        - url: https://kxt6-oo.w-zplfbzpep.hqi
+          count: 104
+          percentage: 9.00598493558391e-8
+        - url: https://7q4-md36a.7-nm.fcy/N/2//
+          count: 229
+          percentage: 1.1690358308754728e-16
+    - domain: d.ke
+      totalReferrals: 1523
+      percentage: 99.9998550415039
+      topPaths:
+        - url: https://9a4.klg
+          count: 1
+          percentage: 1.57233289236946e-35
+    - domain: fma9.sb8.xas
+      totalReferrals: 12
+      percentage: 0.00033509175409562886
+      topPaths:
+        - url: http://zgkb.xu//s/
+          count: 399
+          percentage: 0.000012204328413645271
