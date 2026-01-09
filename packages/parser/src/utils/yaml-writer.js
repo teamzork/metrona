@@ -171,11 +171,7 @@ class YamlDatasetWriter {
       },
 
       // Time-series data (Requirements 7.2)
-      timeSeries: {
-        hourly: this.normalizeTimeSeriesData(analyticsData.timeSeries?.hourly),
-        daily: this.normalizeTimeSeriesData(analyticsData.timeSeries?.daily),
-        monthly: this.normalizeTimeSeriesData(analyticsData.timeSeries?.monthly)
-      },
+      timeSeries: this.createTimeSeriesSection(analyticsData.timeSeries),
 
       // Top content data (Requirements 7.3)
       topContent: {
@@ -240,6 +236,32 @@ class YamlDatasetWriter {
   }
 
   /**
+   * Create time-series section with only existing periods
+   * @param {Object} timeSeriesData - Raw time-series data
+   * @returns {Object} Time-series section
+   * @private
+   */
+  createTimeSeriesSection(timeSeriesData) {
+    const timeSeries = {};
+    
+    if (timeSeriesData) {
+      // Only include periods that exist in the input data
+      ['hourly', 'daily', 'monthly'].forEach(period => {
+        if (timeSeriesData[period]) {
+          timeSeries[period] = this.normalizeTimeSeriesData(timeSeriesData[period]);
+        }
+      });
+    }
+    
+    // If no time-series data exists, create empty structure with at least daily
+    if (Object.keys(timeSeries).length === 0) {
+      timeSeries.daily = this.normalizeTimeSeriesData(null);
+    }
+    
+    return timeSeries;
+  }
+
+  /**
    * Normalize time-series data structure
    * @param {Object} timeSeriesData - Raw time-series data
    * @returns {Object} Normalized time-series data
@@ -285,11 +307,17 @@ class YamlDatasetWriter {
     if (existingDataset.timeSeries) {
       // Merge time-series data by combining buckets and removing duplicates
       ['hourly', 'daily', 'monthly'].forEach(period => {
-        if (existingDataset.timeSeries[period] && mergedDataset.timeSeries[period]) {
-          mergedDataset.timeSeries[period] = this.mergeTimeSeriesPeriod(
-            existingDataset.timeSeries[period],
-            mergedDataset.timeSeries[period]
-          );
+        if (existingDataset.timeSeries[period]) {
+          if (mergedDataset.timeSeries[period]) {
+            // Both exist - merge them
+            mergedDataset.timeSeries[period] = this.mergeTimeSeriesPeriod(
+              existingDataset.timeSeries[period],
+              mergedDataset.timeSeries[period]
+            );
+          } else {
+            // Only exists in existing dataset - preserve it
+            mergedDataset.timeSeries[period] = existingDataset.timeSeries[period];
+          }
         }
       });
     }
