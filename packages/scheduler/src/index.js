@@ -1,8 +1,14 @@
 /**
  * @fileoverview Main entry point for the scheduler package
+ * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 2.3
  */
 
-// Placeholder - will be implemented in subsequent tasks
+const { JobScheduler } = require('./job-scheduler');
+const { JobExecutor } = require('./job-executor');
+const { SchedulerDaemon } = require('./scheduler-daemon');
+
 module.exports = {
-  // Scheduler exports will be added here
+  JobScheduler,
+  JobExecutor,
+  SchedulerDaemon
 };
