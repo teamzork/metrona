@@ -47,6 +47,7 @@ class SchedulerDaemon extends EventEmitter {
     // Configuration state
     this.config = null;
     this.configWatcher = null;
+    this.lastConfigLoad = null;
     this.isRunning = false;
     this.isShuttingDown = false;
     
@@ -130,34 +131,467 @@ class SchedulerDaemon extends EventEmitter {
     try {
       this.emit('reloadingConfig');
       
-      // Load new configuration
+      // Store current configuration as backup
       const oldConfig = this.config;
-      await this.loadConfiguration();
+      const oldJobs = this.scheduler.getAllJobs().map(job => ({
+        jobId: job.jobId,
+        enabled: job.enabled
+      }));
       
-      // Remove old jobs
-      if (oldConfig && oldConfig.sites) {
-        for (const site of oldConfig.sites) {
-          this.scheduler.removeJob(`site-${site.siteId}`);
-        }
+      // Load and validate new configuration
+      let newConfig;
+      try {
+        // Read and parse new configuration
+        const configContent = await fs.readFile(this.configPath, 'utf8');
+        newConfig = yaml.load(configContent);
+        
+        // Validate new configuration before applying
+        this.validateConfiguration(newConfig);
+        
+      } catch (validationError) {
+        // Configuration validation failed - keep old config
+        this.emit('configValidationFailed', {
+          error: validationError.message,
+          configPath: this.configPath,
+          keepingOldConfig: true
+        });
+        
+        // Don't update this.config, keep the old one
+        throw new Error(`Configuration validation failed: ${validationError.message}`);
       }
       
-      // Schedule new jobs
-      await this.scheduleJobsFromConfig();
+      // Apply new configuration
+      this.config = newConfig;
       
-      this.emit('configReloaded');
+      try {
+        // Remove old jobs systematically
+        await this.removeOldJobs(oldConfig);
+        
+        // Schedule new jobs based on updated configuration
+        await this.scheduleJobsFromConfig();
+        
+        // Verify that critical jobs are running
+        await this.verifyCriticalJobs();
+        
+        this.emit('configReloaded', {
+          oldJobCount: oldJobs.length,
+          newJobCount: this.scheduler.getAllJobs().length,
+          configPath: this.configPath
+        });
+        
+      } catch (jobSchedulingError) {
+        // Job scheduling failed - attempt recovery
+        this.emit('jobSchedulingFailed', {
+          error: jobSchedulingError.message,
+          attemptingRecovery: true
+        });
+        
+        try {
+          // Restore old configuration and jobs
+          this.config = oldConfig;
+          await this.removeAllJobs();
+          await this.scheduleJobsFromConfig();
+          
+          this.emit('configRecovered', {
+            restoredJobCount: this.scheduler.getAllJobs().length,
+            error: jobSchedulingError.message
+          });
+          
+        } catch (recoveryError) {
+          // Recovery failed - this is a critical error
+          this.emit('configRecoveryFailed', {
+            originalError: jobSchedulingError.message,
+            recoveryError: recoveryError.message
+          });
+          
+          throw new Error(`Configuration reload failed and recovery failed: ${recoveryError.message}`);
+        }
+        
+        throw jobSchedulingError;
+      }
       
     } catch (error) {
-      this.emit('error', { type: 'configReloadError', error: error.message });
+      this.emit('error', { 
+        type: 'configReloadError', 
+        error: error.message,
+        configPath: this.configPath
+      });
       throw error;
     }
   }
 
   /**
-   * Get daemon status information
-   * @returns {Object} Status information
+   * Remove old jobs systematically
+   * @param {Object} oldConfig - Previous configuration
+   * @returns {Promise<void>}
+   * @private
+   */
+  async removeOldJobs(oldConfig) {
+    const jobsToRemove = [];
+    
+    // Collect site jobs to remove
+    if (oldConfig && oldConfig.sites) {
+      for (const site of oldConfig.sites) {
+        jobsToRemove.push(`site-${site.siteId}`);
+      }
+    }
+    
+    // Collect system jobs to remove
+    if (oldConfig && oldConfig.jobs) {
+      if (oldConfig.jobs.cleanup) {
+        jobsToRemove.push('system-cleanup');
+      }
+      if (oldConfig.jobs.healthCheck) {
+        jobsToRemove.push('system-health-check');
+      }
+    }
+    
+    // Remove jobs with error handling
+    const removalResults = [];
+    for (const jobId of jobsToRemove) {
+      try {
+        const removed = this.scheduler.removeJob(jobId);
+        removalResults.push({ jobId, removed, error: null });
+      } catch (error) {
+        removalResults.push({ jobId, removed: false, error: error.message });
+      }
+    }
+    
+    // Log removal results
+    const failedRemovals = removalResults.filter(r => !r.removed);
+    if (failedRemovals.length > 0) {
+      this.emit('jobRemovalWarnings', {
+        failedRemovals,
+        totalAttempted: jobsToRemove.length
+      });
+    }
+  }
+
+  /**
+   * Remove all jobs (used during recovery)
+   * @returns {Promise<void>}
+   * @private
+   */
+  async removeAllJobs() {
+    const allJobs = this.scheduler.getAllJobs();
+    for (const job of allJobs) {
+      try {
+        this.scheduler.removeJob(job.jobId);
+      } catch (error) {
+        // Log but don't fail - we're in recovery mode
+        this.emit('jobRemovalError', {
+          jobId: job.jobId,
+          error: error.message
+        });
+      }
+    }
+  }
+
+  /**
+   * Verify that critical jobs are properly scheduled
+   * @returns {Promise<void>}
+   * @private
+   */
+  async verifyCriticalJobs() {
+    const allJobs = this.scheduler.getAllJobs();
+    const jobIds = allJobs.map(job => job.jobId);
+    
+    // Verify site jobs
+    if (this.config && this.config.sites) {
+      for (const site of this.config.sites) {
+        if (site.enabled !== false) {
+          const expectedJobId = `site-${site.siteId}`;
+          if (!jobIds.includes(expectedJobId)) {
+            throw new Error(`Critical site job missing: ${expectedJobId}`);
+          }
+          
+          // Verify job is properly configured
+          const jobInfo = this.scheduler.getJobInfo(expectedJobId);
+          if (!jobInfo || !jobInfo.enabled) {
+            throw new Error(`Critical site job not enabled: ${expectedJobId}`);
+          }
+        }
+      }
+    }
+    
+    // Verify system jobs
+    if (this.config && this.config.jobs) {
+      if (this.config.jobs.cleanup && this.config.jobs.cleanup.enabled) {
+        if (!jobIds.includes('system-cleanup')) {
+          throw new Error('Critical system cleanup job missing');
+        }
+      }
+      
+      if (this.config.jobs.healthCheck && this.config.jobs.healthCheck.enabled) {
+        if (!jobIds.includes('system-health-check')) {
+          throw new Error('Critical system health check job missing');
+        }
+      }
+    }
+  }
+
+  /**
+   * Enhanced configuration validation with detailed error reporting
+   * @param {Object} config - Configuration to validate
+   * @throws {Error} If configuration is invalid
+   * @private
+   */
+  validateConfiguration(config) {
+    if (!config || typeof config !== 'object') {
+      throw new Error('Configuration must be an object');
+    }
+    
+    // Validate version
+    if (config.version && typeof config.version !== 'string') {
+      throw new Error('Configuration version must be a string');
+    }
+    
+    // Validate scheduler section
+    if (config.scheduler) {
+      if (typeof config.scheduler !== 'object') {
+        throw new Error('Configuration scheduler section must be an object');
+      }
+      
+      if (config.scheduler.timezone && typeof config.scheduler.timezone !== 'string') {
+        throw new Error('Scheduler timezone must be a string');
+      }
+      
+      if (config.scheduler.outputDir && typeof config.scheduler.outputDir !== 'string') {
+        throw new Error('Scheduler outputDir must be a string');
+      }
+    }
+    
+    // Validate sites array
+    if (!config.sites || !Array.isArray(config.sites)) {
+      throw new Error('Configuration must have a sites array');
+    }
+    
+    // Validate each site configuration with detailed error messages
+    const siteIds = new Set();
+    for (let i = 0; i < config.sites.length; i++) {
+      const site = config.sites[i];
+      const sitePrefix = `Site ${i + 1}`;
+      
+      if (!site || typeof site !== 'object') {
+        throw new Error(`${sitePrefix}: must be an object`);
+      }
+      
+      if (!site.siteId || typeof site.siteId !== 'string') {
+        throw new Error(`${sitePrefix}: must have a valid siteId string`);
+      }
+      
+      // Check for duplicate site IDs
+      if (siteIds.has(site.siteId)) {
+        throw new Error(`${sitePrefix}: duplicate siteId '${site.siteId}'`);
+      }
+      siteIds.add(site.siteId);
+      
+      if (!site.siteName || typeof site.siteName !== 'string') {
+        throw new Error(`${sitePrefix} (${site.siteId}): must have a valid siteName string`);
+      }
+      
+      if (!site.domain || typeof site.domain !== 'string') {
+        throw new Error(`${sitePrefix} (${site.siteId}): must have a valid domain string`);
+      }
+      
+      // Validate domain format
+      const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*$/;
+      if (!domainRegex.test(site.domain)) {
+        throw new Error(`${sitePrefix} (${site.siteId}): invalid domain format '${site.domain}'`);
+      }
+      
+      if (!site.logPath || typeof site.logPath !== 'string') {
+        throw new Error(`${sitePrefix} (${site.siteId}): must have a valid logPath string`);
+      }
+      
+      if (!site.schedule || typeof site.schedule !== 'string') {
+        throw new Error(`${sitePrefix} (${site.siteId}): must have a valid schedule string`);
+      }
+      
+      // Validate schedule format
+      try {
+        const schedule = this.parseSchedule(site.schedule);
+        if (!JobScheduler.validateCronExpression(schedule)) {
+          throw new Error(`Invalid cron expression: ${schedule}`);
+        }
+      } catch (scheduleError) {
+        throw new Error(`${sitePrefix} (${site.siteId}): invalid schedule '${site.schedule}' - ${scheduleError.message}`);
+      }
+      
+      // Validate optional fields
+      if (site.enabled !== undefined && typeof site.enabled !== 'boolean') {
+        throw new Error(`${sitePrefix} (${site.siteId}): enabled must be a boolean`);
+      }
+      
+      if (site.timezone && typeof site.timezone !== 'string') {
+        throw new Error(`${sitePrefix} (${site.siteId}): timezone must be a string`);
+      }
+      
+      // Validate parser options if present
+      if (site.parserOptions) {
+        this.validateParserOptions(site.parserOptions, `${sitePrefix} (${site.siteId})`);
+      }
+    }
+    
+    // Validate jobs section
+    if (config.jobs) {
+      this.validateJobsConfiguration(config.jobs);
+    }
+  }
+
+  /**
+   * Validate parser options
+   * @param {Object} parserOptions - Parser options to validate
+   * @param {string} context - Context for error messages
+   * @throws {Error} If parser options are invalid
+   * @private
+   */
+  validateParserOptions(parserOptions, context) {
+    if (typeof parserOptions !== 'object') {
+      throw new Error(`${context}: parserOptions must be an object`);
+    }
+    
+    if (parserOptions.topContentLimit !== undefined) {
+      if (!Number.isInteger(parserOptions.topContentLimit) || parserOptions.topContentLimit < 1) {
+        throw new Error(`${context}: topContentLimit must be a positive integer`);
+      }
+    }
+    
+    if (parserOptions.referrerLimit !== undefined) {
+      if (!Number.isInteger(parserOptions.referrerLimit) || parserOptions.referrerLimit < 1) {
+        throw new Error(`${context}: referrerLimit must be a positive integer`);
+      }
+    }
+    
+    if (parserOptions.contentRanking) {
+      if (typeof parserOptions.contentRanking !== 'object') {
+        throw new Error(`${context}: contentRanking must be an object`);
+      }
+      
+      if (parserOptions.contentRanking.excludePatterns) {
+        if (!Array.isArray(parserOptions.contentRanking.excludePatterns)) {
+          throw new Error(`${context}: contentRanking.excludePatterns must be an array`);
+        }
+        
+        for (let i = 0; i < parserOptions.contentRanking.excludePatterns.length; i++) {
+          if (typeof parserOptions.contentRanking.excludePatterns[i] !== 'string') {
+            throw new Error(`${context}: contentRanking.excludePatterns[${i}] must be a string`);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Validate jobs configuration
+   * @param {Object} jobs - Jobs configuration to validate
+   * @throws {Error} If jobs configuration is invalid
+   * @private
+   */
+  validateJobsConfiguration(jobs) {
+    if (typeof jobs !== 'object') {
+      throw new Error('Jobs configuration must be an object');
+    }
+    
+    // Validate cleanup job
+    if (jobs.cleanup) {
+      if (typeof jobs.cleanup !== 'object') {
+        throw new Error('Cleanup job configuration must be an object');
+      }
+      
+      if (jobs.cleanup.schedule && typeof jobs.cleanup.schedule !== 'string') {
+        throw new Error('Cleanup job schedule must be a string');
+      }
+      
+      if (jobs.cleanup.enabled !== undefined && typeof jobs.cleanup.enabled !== 'boolean') {
+        throw new Error('Cleanup job enabled must be a boolean');
+      }
+      
+      if (jobs.cleanup.options) {
+        if (typeof jobs.cleanup.options !== 'object') {
+          throw new Error('Cleanup job options must be an object');
+        }
+        
+        if (jobs.cleanup.options.maxAge !== undefined) {
+          if (!Number.isInteger(jobs.cleanup.options.maxAge) || jobs.cleanup.options.maxAge < 1) {
+            throw new Error('Cleanup job maxAge must be a positive integer');
+          }
+        }
+      }
+    }
+    
+    // Validate health check job
+    if (jobs.healthCheck) {
+      if (typeof jobs.healthCheck !== 'object') {
+        throw new Error('Health check job configuration must be an object');
+      }
+      
+      if (jobs.healthCheck.schedule && typeof jobs.healthCheck.schedule !== 'string') {
+        throw new Error('Health check job schedule must be a string');
+      }
+      
+      if (jobs.healthCheck.enabled !== undefined && typeof jobs.healthCheck.enabled !== 'boolean') {
+        throw new Error('Health check job enabled must be a boolean');
+      }
+    }
+  }
+
+  /**
+   * Manually trigger configuration reload (useful for testing or manual operations)
+   * @param {Object} [options] - Reload options
+   * @param {boolean} [options.force=false] - Force reload even if file hasn't changed
+   * @returns {Promise<void>}
+   */
+  async manualConfigReload(options = {}) {
+    const force = options.force || false;
+    
+    try {
+      this.emit('manualConfigReloadStarted', { force, timestamp: new Date() });
+      
+      if (!force) {
+        // Check if config file has been modified since last load
+        try {
+          const stats = await fs.stat(this.configPath);
+          const lastModified = stats.mtime;
+          
+          if (this.lastConfigLoad && lastModified <= this.lastConfigLoad) {
+            this.emit('manualConfigReloadSkipped', {
+              reason: 'File not modified since last load',
+              lastModified,
+              lastLoad: this.lastConfigLoad
+            });
+            return;
+          }
+        } catch (statError) {
+          // If we can't stat the file, proceed with reload attempt
+          this.emit('configFileStatFailed', { error: statError.message });
+        }
+      }
+      
+      await this.reloadConfiguration();
+      
+      this.emit('manualConfigReloadCompleted', { 
+        force, 
+        timestamp: new Date(),
+        jobCount: this.scheduler.getAllJobs().length
+      });
+      
+    } catch (error) {
+      this.emit('manualConfigReloadFailed', {
+        force,
+        error: error.message,
+        timestamp: new Date()
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed daemon status information including configuration health
+   * @returns {Object} Comprehensive status information
    */
   getStatus() {
-    return {
+    const baseStatus = {
       isRunning: this.isRunning,
       isShuttingDown: this.isShuttingDown,
       configPath: this.configPath,
@@ -166,12 +600,37 @@ class SchedulerDaemon extends EventEmitter {
       scheduler: this.scheduler.getStats(),
       executor: this.executor.getStats(),
       sites: this.config?.sites?.length || 0,
-      uptime: this.isRunning ? new Date() - this.startTime : 0
+      uptime: this.isRunning && this.startTime ? new Date() - this.startTime : 0
     };
+    
+    // Add configuration health information
+    if (this.config) {
+      baseStatus.configHealth = {
+        version: this.config.version || 'unknown',
+        enabledSites: this.config.sites ? this.config.sites.filter(s => s.enabled !== false).length : 0,
+        totalSites: this.config.sites ? this.config.sites.length : 0,
+        systemJobs: {
+          cleanup: this.config.jobs?.cleanup?.enabled || false,
+          healthCheck: this.config.jobs?.healthCheck?.enabled || false
+        },
+        lastLoad: this.lastConfigLoad || null
+      };
+      
+      // Add job status summary
+      const allJobs = this.scheduler.getAllJobs();
+      baseStatus.jobSummary = {
+        total: allJobs.length,
+        enabled: allJobs.filter(j => j.enabled).length,
+        running: allJobs.filter(j => j.isRunning).length,
+        withErrors: allJobs.filter(j => j.errorCount > 0).length
+      };
+    }
+    
+    return baseStatus;
   }
 
   /**
-   * Load configuration from file
+   * Load configuration from file with enhanced tracking
    * @returns {Promise<void>}
    * @private
    */
@@ -188,7 +647,13 @@ class SchedulerDaemon extends EventEmitter {
       this.validateConfiguration(config);
       
       this.config = config;
-      this.emit('configLoaded', { configPath: this.configPath });
+      this.lastConfigLoad = new Date();
+      
+      this.emit('configLoaded', { 
+        configPath: this.configPath,
+        timestamp: this.lastConfigLoad,
+        sites: config.sites?.length || 0
+      });
       
     } catch (error) {
       if (error.code === 'ENOENT') {
@@ -410,7 +875,7 @@ class SchedulerDaemon extends EventEmitter {
   }
 
   /**
-   * Setup configuration file watcher
+   * Setup configuration file watcher with enhanced error handling
    * @returns {void}
    * @private
    */
@@ -421,25 +886,135 @@ class SchedulerDaemon extends EventEmitter {
     
     this.configWatcher = chokidar.watch(this.configPath, {
       persistent: true,
-      ignoreInitial: true
+      ignoreInitial: true,
+      // Add stability checks to avoid rapid reloads
+      awaitWriteFinish: {
+        stabilityThreshold: 1000,  // Wait 1 second for file to stabilize
+        pollInterval: 100
+      },
+      // Handle various file system events
+      ignorePermissionErrors: false
     });
     
-    this.configWatcher.on('change', async () => {
-      try {
-        await this.reloadConfiguration();
-      } catch (error) {
-        this.emit('error', { 
-          type: 'configWatchError', 
-          error: error.message 
+    // Track reload attempts to prevent excessive reloading
+    let lastReloadAttempt = 0;
+    const minReloadInterval = 5000; // Minimum 5 seconds between reloads
+    let consecutiveFailures = 0;
+    const maxConsecutiveFailures = 3;
+    
+    this.configWatcher.on('change', async (path) => {
+      const now = Date.now();
+      
+      // Prevent excessive reloading
+      if (now - lastReloadAttempt < minReloadInterval) {
+        this.emit('configReloadThrottled', {
+          path,
+          timeSinceLastAttempt: now - lastReloadAttempt,
+          minInterval: minReloadInterval
         });
+        return;
+      }
+      
+      lastReloadAttempt = now;
+      
+      try {
+        this.emit('configFileChanged', { path, timestamp: new Date() });
+        
+        await this.reloadConfiguration();
+        
+        // Reset failure counter on success
+        consecutiveFailures = 0;
+        
+      } catch (error) {
+        consecutiveFailures++;
+        
+        this.emit('configReloadFailed', {
+          path,
+          error: error.message,
+          consecutiveFailures,
+          maxFailures: maxConsecutiveFailures
+        });
+        
+        // If too many consecutive failures, temporarily disable watching
+        if (consecutiveFailures >= maxConsecutiveFailures) {
+          this.emit('configWatcherDisabled', {
+            reason: 'Too many consecutive reload failures',
+            consecutiveFailures,
+            path
+          });
+          
+          // Disable watcher temporarily
+          await this.configWatcher.close();
+          this.configWatcher = null;
+          
+          // Re-enable after a delay
+          setTimeout(() => {
+            if (!this.isShuttingDown) {
+              this.emit('configWatcherReenabling', { path });
+              consecutiveFailures = 0;
+              this.setupConfigWatcher();
+            }
+          }, 30000); // Re-enable after 30 seconds
+        }
       }
     });
     
-    this.configWatcher.on('error', (error) => {
-      this.emit('error', { 
-        type: 'configWatchError', 
-        error: error.message 
+    this.configWatcher.on('unlink', (path) => {
+      this.emit('configFileDeleted', { 
+        path, 
+        timestamp: new Date(),
+        action: 'Configuration file was deleted - keeping current configuration'
       });
+    });
+    
+    this.configWatcher.on('add', (path) => {
+      this.emit('configFileCreated', { 
+        path, 
+        timestamp: new Date(),
+        action: 'Configuration file was created - attempting reload'
+      });
+      
+      // Attempt to reload when config file is recreated
+      setTimeout(async () => {
+        try {
+          await this.reloadConfiguration();
+        } catch (error) {
+          this.emit('error', { 
+            type: 'configReloadError', 
+            error: error.message,
+            trigger: 'file_created'
+          });
+        }
+      }, 1000); // Wait a bit for file to be fully written
+    });
+    
+    this.configWatcher.on('error', (error) => {
+      this.emit('configWatcherError', { 
+        error: error.message,
+        timestamp: new Date()
+      });
+      
+      // Try to recover from watcher errors
+      setTimeout(() => {
+        if (!this.isShuttingDown && this.configWatcher) {
+          try {
+            this.configWatcher.close();
+            this.configWatcher = null;
+            this.setupConfigWatcher();
+            this.emit('configWatcherRecovered', { timestamp: new Date() });
+          } catch (recoveryError) {
+            this.emit('configWatcherRecoveryFailed', { 
+              error: recoveryError.message,
+              timestamp: new Date()
+            });
+          }
+        }
+      }, 5000);
+    });
+    
+    this.emit('configWatcherStarted', { 
+      path: this.configPath,
+      timestamp: new Date()
     });
   }
 
