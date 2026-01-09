@@ -120,7 +120,7 @@ This implementation plan breaks down the Metrona Analytics System into discrete 
     - Handle configuration validation and error recovery
     - _Requirements: 2.3_
 
-  - [ ] 6.4 Write property test for configuration hot-reload
+  - [x] 6.4 Write property test for configuration hot-reload
     - **Property 8: Configuration Hot-Reload Correctness**
     - **Validates: Requirements 2.3**
 
