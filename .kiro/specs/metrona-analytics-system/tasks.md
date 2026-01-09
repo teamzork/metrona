@@ -70,13 +70,13 @@ This implementation plan breaks down the Metrona Analytics System into discrete 
     - **Property 6: Log File Discovery Completeness**
     - **Validates: Requirements 1.6**
 
-  - [ ] 3.4 Implement analytics calculation engine
+  - [x] 3.4 Implement analytics calculation engine
     - Create AnalyticsCalculator class
     - Implement pageview and unique visitor calculations
     - Add referrer domain extraction and grouping
     - _Requirements: 7.2, 7.3, 7.4, 7.5_
 
-  - [ ] 3.5 Write property tests for analytics calculations
+  - [x] 3.5 Write property tests for analytics calculations
     - **Property 25: Time-Series Data Organization**
     - **Property 26: Top Content Data Completeness**
     - **Property 27: Referrer Data Grouping**
