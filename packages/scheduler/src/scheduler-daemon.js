@@ -1,6 +1,6 @@
 /**
  * @fileoverview Main scheduler daemon for automated analytics processing
- * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 2.3, 2.5, 2.6
+ * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 2.3, 2.5, 2.6, 10.1, 10.2, 10.4
  */
 
 const { EventEmitter } = require('events');
@@ -1024,23 +1024,151 @@ class SchedulerDaemon extends EventEmitter {
    * @private
    */
   setupEventHandlers() {
-    // Forward scheduler events
+    // Forward scheduler events with enhanced logging
     this.scheduler.on('jobStarted', (data) => {
+      this.logStructuredEvent('INFO', 'JobStarted', data);
       this.emit('jobStarted', data);
     });
     
     this.scheduler.on('jobCompleted', (data) => {
+      const level = data.success ? 'INFO' : 'ERROR';
+      this.logStructuredEvent(level, 'JobCompleted', data);
       this.emit('jobCompleted', data);
     });
     
     this.scheduler.on('error', (data) => {
+      this.logStructuredEvent('ERROR', 'SchedulerError', data);
       this.emit('error', data);
+    });
+    
+    // Handle structured logging from scheduler
+    this.scheduler.on('structuredLog', (logEntry) => {
+      this.emit('structuredLog', logEntry);
     });
     
     // Track start time when scheduler starts
     this.scheduler.on('schedulerStarted', () => {
       this.startTime = new Date();
+      this.logStructuredEvent('INFO', 'SchedulerStarted', { timestamp: this.startTime });
     });
+    
+    // Handle graceful shutdown events
+    this.scheduler.on('shutdownStarted', () => {
+      this.logStructuredEvent('INFO', 'ShutdownStarted', { timestamp: new Date() });
+    });
+    
+    this.scheduler.on('shutdownCompleted', () => {
+      this.logStructuredEvent('INFO', 'ShutdownCompleted', { timestamp: new Date() });
+    });
+    
+    this.scheduler.on('shutdownForced', (data) => {
+      this.logStructuredEvent('WARN', 'ShutdownForced', data);
+    });
+    
+    // Handle configuration events with structured logging
+    this.on('configLoaded', (data) => {
+      this.logStructuredEvent('INFO', 'ConfigLoaded', data);
+    });
+    
+    this.on('configReloaded', (data) => {
+      this.logStructuredEvent('INFO', 'ConfigReloaded', data);
+    });
+    
+    this.on('configValidationFailed', (data) => {
+      this.logStructuredEvent('ERROR', 'ConfigValidationFailed', data);
+    });
+    
+    this.on('configRecovered', (data) => {
+      this.logStructuredEvent('WARN', 'ConfigRecovered', data);
+    });
+    
+    this.on('configRecoveryFailed', (data) => {
+      this.logStructuredEvent('ERROR', 'ConfigRecoveryFailed', data);
+    });
+  }
+
+  /**
+   * Log structured events for monitoring and debugging
+   * @param {string} level - Log level (INFO, WARN, ERROR)
+   * @param {string} eventType - Type of event
+   * @param {Object} data - Event data
+   * @private
+   */
+  logStructuredEvent(level, eventType, data) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      component: 'SchedulerDaemon',
+      eventType,
+      data: this.sanitizeLogData(data)
+    };
+    
+    // Emit for external logging systems
+    this.emit('structuredLog', logEntry);
+    
+    // Console logging with appropriate level
+    const message = `[${logEntry.timestamp}] ${level} ${logEntry.component}: ${eventType}`;
+    
+    switch (level) {
+      case 'ERROR':
+        console.error(message);
+        if (data.error || data.message) {
+          console.error(`  Error: ${data.error || data.message}`);
+        }
+        break;
+      case 'WARN':
+        console.warn(message);
+        break;
+      case 'INFO':
+        console.log(message);
+        break;
+    }
+    
+    // Log additional context for debugging
+    if (process.env.NODE_ENV !== 'production' && Object.keys(logEntry.data).length > 0) {
+      console.log(`  Data: ${JSON.stringify(logEntry.data, null, 2)}`);
+    }
+  }
+
+  /**
+   * Sanitize log data to remove sensitive information
+   * @param {Object} data - Data to sanitize
+   * @returns {Object} Sanitized data
+   * @private
+   */
+  sanitizeLogData(data) {
+    if (!data || typeof data !== 'object') {
+      return data;
+    }
+    
+    const sanitized = { ...data };
+    
+    // Remove or sanitize sensitive fields
+    if (sanitized.configPath) {
+      sanitized.configPath = sanitized.configPath.replace(/\/home\/[^\/]+/, '/home/***');
+    }
+    
+    if (sanitized.outputPath) {
+      sanitized.outputPath = sanitized.outputPath.replace(/\/home\/[^\/]+/, '/home/***');
+    }
+    
+    // Remove stack traces from general logging (keep in structured logs)
+    if (sanitized.stack && process.env.NODE_ENV === 'production') {
+      delete sanitized.stack;
+    }
+    
+    // Limit error context to essential information
+    if (sanitized.context && typeof sanitized.context === 'object') {
+      const contextKeys = Object.keys(sanitized.context);
+      if (contextKeys.length > 5) {
+        sanitized.context = {
+          ...Object.fromEntries(contextKeys.slice(0, 5).map(k => [k, sanitized.context[k]])),
+          '...': `${contextKeys.length - 5} more fields`
+        };
+      }
+    }
+    
+    return sanitized;
   }
 }
 

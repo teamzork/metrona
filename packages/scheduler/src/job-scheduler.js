@@ -1,6 +1,6 @@
 /**
  * @fileoverview Job scheduling system for automated analytics processing
- * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 3.2
+ * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 2.5, 3.2, 10.1, 10.2, 10.4
  */
 
 const cron = require('node-cron');
@@ -142,12 +142,24 @@ class JobScheduler extends EventEmitter {
     try {
       this.emit('jobStarted', { jobId, startTime });
       
-      // Execute the job function
-      await jobFunction(context);
+      // Execute the job function with timeout protection
+      const timeoutMs = context.timeout || 300000; // 5 minute default timeout
+      const jobPromise = jobFunction(context);
+      
+      let timeoutHandle;
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error(`Job execution timeout after ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+      
+      // Race between job completion and timeout
+      const result = await Promise.race([jobPromise, timeoutPromise]);
+      clearTimeout(timeoutHandle);
       
       // Update success statistics
       const endTime = new Date();
-      const duration = endTime - startTime;
+      const duration = endTime.getTime() - startTime.getTime();
       
       jobData.lastRun = endTime;
       jobData.nextRun = this.getNextRunTime(jobData.cronExpression);
@@ -162,46 +174,65 @@ class JobScheduler extends EventEmitter {
         startTime, 
         endTime, 
         duration,
-        success: true 
+        success: true,
+        result: this.sanitizeJobResult(result)
       });
       
     } catch (error) {
-      // Update error statistics
+      // Enhanced error handling with detailed logging
       const endTime = new Date();
-      const duration = endTime - startTime;
+      const duration = endTime.getTime() - startTime.getTime();
+      
+      // Categorize error types for better handling
+      const errorCategory = this.categorizeError(error);
+      const errorDetails = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        category: errorCategory,
+        timestamp: endTime,
+        duration,
+        context: this.sanitizeContext(context)
+      };
       
       jobData.lastRun = endTime;
       jobData.nextRun = this.getNextRunTime(jobData.cronExpression);
       jobData.runCount++;
       jobData.errorCount++;
-      jobData.lastError = {
-        message: error.message,
-        stack: error.stack,
-        timestamp: endTime
-      };
+      jobData.lastError = errorDetails;
       
       this.stats.failedRuns++;
       this.stats.lastError = {
         jobId,
-        message: error.message,
+        message: errorDetails.message,
+        category: errorCategory,
         timestamp: endTime
       };
       
+      // Emit detailed error information for logging
       this.emit('jobCompleted', { 
         jobId, 
         startTime, 
         endTime, 
         duration,
         success: false,
-        error: error.message 
+        error: errorDetails.message,
+        errorCategory,
+        errorDetails
       });
       
       this.emit('error', { 
         type: 'jobExecutionError', 
         jobId, 
-        error: error.message,
-        stack: error.stack 
+        error: errorDetails.message,
+        errorCategory,
+        stack: errorDetails.stack,
+        duration,
+        context: errorDetails.context,
+        timestamp: endTime
       });
+      
+      // Log structured error information for troubleshooting (Requirement 2.5)
+      this.logStructuredError(jobId, errorDetails);
       
     } finally {
       this.runningJobs.delete(jobId);
@@ -387,6 +418,173 @@ class JobScheduler extends EventEmitter {
     });
     
     return this.shutdownPromise;
+  }
+
+  /**
+   * Categorize errors for better handling and logging
+   * @param {Error|any} error - Error to categorize
+   * @returns {string} Error category
+   * @private
+   */
+  categorizeError(error) {
+    if (!error) return 'unknown';
+    
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : '';
+    
+    // File system errors
+    if (message.includes('ENOENT') || message.includes('no such file')) {
+      return 'file_not_found';
+    }
+    if (message.includes('EACCES') || message.includes('permission denied')) {
+      return 'permission_denied';
+    }
+    if (message.includes('EMFILE') || message.includes('too many open files')) {
+      return 'resource_exhaustion';
+    }
+    
+    // Network/connectivity errors
+    if (message.includes('ECONNREFUSED') || message.includes('connection refused')) {
+      return 'connection_refused';
+    }
+    if (message.includes('ETIMEDOUT') || message.includes('timeout')) {
+      return 'timeout';
+    }
+    
+    // Memory/resource errors
+    if (message.includes('out of memory') || message.includes('heap out of memory')) {
+      return 'memory_exhaustion';
+    }
+    
+    // Parsing/validation errors
+    if (message.includes('invalid') || message.includes('malformed') || message.includes('parse')) {
+      return 'validation_error';
+    }
+    
+    // Configuration errors
+    if (message.includes('configuration') || message.includes('config')) {
+      return 'configuration_error';
+    }
+    
+    // Job-specific errors
+    if (message.includes('Job execution timeout')) {
+      return 'job_timeout';
+    }
+    
+    // Check stack trace for more context
+    if (stack.includes('YamlDatasetWriter')) {
+      return 'yaml_generation_error';
+    }
+    if (stack.includes('LogFileReader') || stack.includes('NginxLogParser')) {
+      return 'log_processing_error';
+    }
+    if (stack.includes('AnalyticsCalculator')) {
+      return 'analytics_calculation_error';
+    }
+    
+    return 'general_error';
+  }
+
+  /**
+   * Log structured error information for troubleshooting
+   * @param {string} jobId - Job identifier
+   * @param {Object} errorDetails - Detailed error information
+   * @private
+   */
+  logStructuredError(jobId, errorDetails) {
+    const logEntry = {
+      timestamp: errorDetails.timestamp.toISOString(),
+      level: 'ERROR',
+      component: 'JobScheduler',
+      jobId,
+      errorCategory: errorDetails.category,
+      message: errorDetails.message,
+      duration: errorDetails.duration,
+      context: errorDetails.context
+    };
+    
+    // Include stack trace for debugging if available
+    if (errorDetails.stack) {
+      logEntry.stackTrace = errorDetails.stack;
+    }
+    
+    // Emit structured log event for external logging systems
+    this.emit('structuredLog', logEntry);
+    
+    // Also log to console with structured format for immediate visibility
+    console.error(`[${logEntry.timestamp}] ${logEntry.level} ${logEntry.component}: Job ${jobId} failed`);
+    console.error(`  Category: ${logEntry.errorCategory}`);
+    console.error(`  Message: ${logEntry.message}`);
+    console.error(`  Duration: ${logEntry.duration}ms`);
+    
+    if (logEntry.context && Object.keys(logEntry.context).length > 0) {
+      console.error(`  Context: ${JSON.stringify(logEntry.context, null, 2)}`);
+    }
+    
+    if (logEntry.stackTrace && process.env.NODE_ENV !== 'production') {
+      console.error(`  Stack: ${logEntry.stackTrace}`);
+    }
+  }
+
+  /**
+   * Sanitize job result for logging (remove sensitive data)
+   * @param {any} result - Job execution result
+   * @returns {any} Sanitized result
+   * @private
+   */
+  sanitizeJobResult(result) {
+    if (!result || typeof result !== 'object') {
+      return result;
+    }
+    
+    // Create a copy and remove sensitive fields
+    const sanitized = { ...result };
+    
+    // Remove potentially sensitive paths
+    if (sanitized.outputPath) {
+      sanitized.outputPath = sanitized.outputPath.replace(/\/home\/[^\/]+/, '/home/***');
+    }
+    
+    // Limit analytics data to summary only
+    if (sanitized.analytics) {
+      sanitized.analytics = {
+        totalPageviews: sanitized.analytics.totalPageviews,
+        uniqueVisitors: sanitized.analytics.uniqueVisitors,
+        totalPages: sanitized.analytics.totalPages
+      };
+    }
+    
+    return sanitized;
+  }
+
+  /**
+   * Sanitize context data for logging (remove sensitive information)
+   * @param {Object} context - Context data
+   * @returns {Object} Sanitized context
+   * @private
+   */
+  sanitizeContext(context) {
+    if (!context || typeof context !== 'object') {
+      return {};
+    }
+    
+    const sanitized = {};
+    
+    // Include safe context fields
+    if (context.batchSize) sanitized.batchSize = context.batchSize;
+    if (context.timeout) sanitized.timeout = context.timeout;
+    
+    // Sanitize site config if present
+    if (context.siteConfig) {
+      sanitized.siteConfig = {
+        siteId: context.siteConfig.siteId,
+        domain: context.siteConfig.domain,
+        // Don't include full log paths for security
+        hasLogPath: !!context.siteConfig.logPath
+      };
+    }
+    
+    return sanitized;
   }
 
   /**

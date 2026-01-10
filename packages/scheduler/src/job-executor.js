@@ -1,6 +1,6 @@
 /**
  * @fileoverview Job executor for analytics processing tasks
- * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 2.4, 2.5
+ * Feature: metrona-analytics-system, Requirements 2.1, 2.2, 2.4, 2.5, 10.1, 10.2, 10.4
  */
 
 const path = require('path');
@@ -26,7 +26,7 @@ class JobExecutor {
     this.salt = options.salt || '';
     
     // Initialize parser and writer
-    this.logParser = new NginxLogParser();
+    this.logParser = new NginxLogParser('combined'); // Use combined format as default
     this.yamlWriter = new YamlDatasetWriter({
       outputDir: this.outputDir,
       filePrefix: 'analytics'
@@ -57,60 +57,111 @@ class JobExecutor {
     // Validate site configuration
     this.validateSiteConfig(siteConfig);
     
-    // Return the job function
+    // Return the job function with comprehensive error handling
     return async (context = {}) => {
       const startTime = new Date();
       const siteId = siteConfig.siteId;
       
       try {
+        // Pre-flight checks (Requirement 10.1)
+        await this.performPreflightChecks(siteConfig);
+        
         // Get last processed position for incremental processing
         const lastPosition = this.lastProcessedPositions.get(siteId) || 0;
         
-        // Create log file reader for incremental processing
-        const logReader = new LogFileReader(siteConfig.logPath, {
-          startPosition: lastPosition,
-          batchSize: context.batchSize || 1000
-        });
+        // Create log file reader for incremental processing with error isolation
+        let logReader;
+        try {
+          logReader = new LogFileReader(siteConfig.logPath, {
+            lastPosition: lastPosition,
+            maxMemoryMB: context.maxMemoryMB || 100
+          });
+        } catch (readerError) {
+          throw new Error(`Failed to initialize log reader for ${siteId}: ${readerError.message}`);
+        }
         
-        // Create analytics calculator
-        const calculator = new AnalyticsCalculator({
-          timezone: siteConfig.timezone || this.timezone,
-          salt: this.salt,
-          contentRankingOptions: siteConfig.parserOptions?.contentRanking
-        });
+        // Create analytics calculator with error isolation
+        let calculator;
+        try {
+          calculator = new AnalyticsCalculator({
+            timezone: siteConfig.timezone || this.timezone,
+            salt: this.salt,
+            contentRankingOptions: siteConfig.parserOptions?.contentRanking
+          });
+        } catch (calculatorError) {
+          throw new Error(`Failed to initialize analytics calculator for ${siteId}: ${calculatorError.message}`);
+        }
         
         let totalEntriesProcessed = 0;
         let currentPosition = lastPosition;
+        let processingErrors = [];
         
-        // Process log entries in batches
-        for await (const batch of logReader.streamBatches((line) => this.logParser.parseLine(line), context.batchSize || 1000)) {
-          if (batch.length > 0) {
-            calculator.processBatch(batch);
-            totalEntriesProcessed += batch.length;
+        // Process log entries in batches with error isolation (Requirement 10.4)
+        try {
+          for await (const batch of logReader.streamBatches(
+            (line) => this.parseLineWithErrorHandling(line, siteId, processingErrors), 
+            context.batchSize || 1000
+          )) {
+            if (batch.length > 0) {
+              // Filter out failed parsing results
+              const validEntries = batch.filter(entry => entry !== null);
+              
+              if (validEntries.length > 0) {
+                calculator.processBatch(validEntries);
+                totalEntriesProcessed += validEntries.length;
+              }
+            }
+          }
+        } catch (streamError) {
+          // Log streaming error but continue with what we have (Requirement 10.1)
+          this.logProcessingError(siteId, 'stream_processing', streamError, {
+            entriesProcessedSoFar: totalEntriesProcessed,
+            lastPosition: currentPosition
+          });
+          
+          // If we processed some entries, continue with analytics generation
+          if (totalEntriesProcessed === 0) {
+            throw new Error(`No log entries could be processed for ${siteId}: ${streamError.message}`);
           }
         }
         
-        // Generate analytics data
-        const analytics = {
-          summary: calculator.generateSummaryStatistics(),
-          timeSeries: {
-            hourly: calculator.generateTimeSeriesData('hourly'),
-            daily: calculator.generateTimeSeriesData('daily'),
-            monthly: calculator.generateTimeSeriesData('monthly')
-          },
-          topContent: calculator.generateTopContentData(
-            siteConfig.parserOptions?.topContentLimit || 20
-          ),
-          referrers: calculator.generateReferrerData(
-            siteConfig.parserOptions?.referrerLimit || 10
-          )
-        };
+        // Generate analytics data with error handling
+        let analytics;
+        try {
+          analytics = {
+            summary: calculator.generateSummaryStatistics(),
+            timeSeries: {
+              hourly: calculator.generateTimeSeriesData('hourly'),
+              daily: calculator.generateTimeSeriesData('daily'),
+              monthly: calculator.generateTimeSeriesData('monthly')
+            },
+            topContent: calculator.generateTopContentData(
+              siteConfig.parserOptions?.topContentLimit || 20
+            ),
+            referrers: calculator.generateReferrerData(
+              siteConfig.parserOptions?.referrerLimit || 10
+            )
+          };
+        } catch (analyticsError) {
+          throw new Error(`Failed to generate analytics for ${siteId}: ${analyticsError.message}`);
+        }
         
-        // Write or update YAML dataset
-        const outputPath = await this.yamlWriter.updateDataset(analytics, siteConfig);
+        // Write or update YAML dataset with data preservation (Requirement 10.2)
+        let outputPath;
+        try {
+          outputPath = await this.yamlWriter.updateDataset(analytics, siteConfig);
+        } catch (yamlError) {
+          // YAML generation failed - preserve existing data and report error (Requirement 10.2)
+          this.logProcessingError(siteId, 'yaml_generation', yamlError, {
+            analyticsGenerated: true,
+            entriesProcessed: totalEntriesProcessed,
+            preservedExistingData: true
+          });
+          
+          throw new Error(`YAML generation failed for ${siteId}, existing data preserved: ${yamlError.message}`);
+        }
         
-        // Update processing state (simplified for now)
-        // TODO: Implement proper position tracking with LogFileReader
+        // Update processing state only on successful completion
         this.lastProcessedPositions.set(siteId, currentPosition);
         
         // Update statistics
@@ -118,12 +169,18 @@ class JobExecutor {
         this.processingStats.totalLogEntriesProcessed += totalEntriesProcessed;
         this.processingStats.lastProcessingTime = new Date();
         
-        const duration = new Date() - startTime;
+        const duration = new Date().getTime() - startTime.getTime();
+        
+        // Log processing warnings if any
+        if (processingErrors.length > 0) {
+          this.logProcessingWarnings(siteId, processingErrors, totalEntriesProcessed);
+        }
         
         return {
           success: true,
           siteId,
           entriesProcessed: totalEntriesProcessed,
+          processingErrors: processingErrors.length,
           outputPath,
           duration,
           analytics: {
@@ -136,15 +193,22 @@ class JobExecutor {
       } catch (error) {
         this.processingStats.totalErrors++;
         
-        const duration = new Date() - startTime;
+        const duration = new Date().getTime() - startTime.getTime();
         
-        // Re-throw with additional context
+        // Log detailed error for troubleshooting (Requirement 2.5)
+        this.logProcessingError(siteId, 'job_execution', error, {
+          duration,
+          context: this.sanitizeContext(context)
+        });
+        
+        // Re-throw with additional context but preserve error isolation (Requirement 10.4)
         const enhancedError = new Error(
           `Failed to process analytics for site ${siteId}: ${error.message}`
         );
         enhancedError.originalError = error;
         enhancedError.siteId = siteId;
         enhancedError.duration = duration;
+        enhancedError.category = this.categorizeProcessingError(error);
         
         throw enhancedError;
       }
@@ -301,6 +365,198 @@ class JobExecutor {
     if (!path.isAbsolute(siteConfig.logPath) && !siteConfig.logPath.startsWith('./')) {
       console.warn(`Log path should be absolute or relative: ${siteConfig.logPath}`);
     }
+  }
+
+  /**
+   * Perform pre-flight checks before processing a site (Requirement 10.1)
+   * @param {Object} siteConfig - Site configuration
+   * @returns {Promise<void>}
+   * @throws {Error} If pre-flight checks fail
+   * @private
+   */
+  async performPreflightChecks(siteConfig) {
+    const siteId = siteConfig.siteId;
+    
+    try {
+      // Check if log file exists and is readable
+      await fs.access(siteConfig.logPath, fs.constants.R_OK);
+      
+      // Check file stats
+      const stats = await fs.stat(siteConfig.logPath);
+      
+      // Warn if log file is very old (might indicate rotation issues)
+      const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
+      if (ageHours > 48) {
+        console.warn(`[${siteId}] Log file is ${Math.round(ageHours)} hours old, check log rotation`);
+      }
+      
+      // Check if output directory is writable
+      await fs.access(this.outputDir, fs.constants.W_OK);
+      
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new Error(`Log file not found: ${siteConfig.logPath}`);
+      } else if (error.code === 'EACCES') {
+        throw new Error(`Permission denied accessing: ${siteConfig.logPath}`);
+      } else {
+        throw new Error(`Pre-flight check failed: ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Parse a log line with error handling and isolation (Requirement 10.1)
+   * @param {string} line - Log line to parse
+   * @param {string} siteId - Site identifier for error context
+   * @param {Array} processingErrors - Array to collect parsing errors
+   * @returns {Object|null} Parsed log entry or null if parsing failed
+   * @private
+   */
+  parseLineWithErrorHandling(line, siteId, processingErrors) {
+    try {
+      const result = this.logParser.parseLine(line);
+      
+      // If parser returns null, it means the line was invalid but not an error
+      // This is normal behavior for malformed log lines
+      if (result === null) {
+        // Count as a processing warning, not an error
+        processingErrors.push({
+          line: line.substring(0, 100) + (line.length > 100 ? '...' : ''),
+          error: 'Invalid log line format - skipped',
+          timestamp: new Date(),
+          severity: 'warning'
+        });
+      }
+      
+      return result;
+    } catch (parseError) {
+      // Collect actual parsing errors (exceptions)
+      processingErrors.push({
+        line: line.substring(0, 100) + (line.length > 100 ? '...' : ''),
+        error: parseError.message,
+        timestamp: new Date(),
+        severity: 'error'
+      });
+      
+      // Return null to indicate failed parsing
+      return null;
+    }
+  }
+
+  /**
+   * Log processing errors with structured information (Requirement 2.5)
+   * @param {string} siteId - Site identifier
+   * @param {string} errorType - Type of error
+   * @param {Error} error - Error object
+   * @param {Object} context - Additional context
+   * @private
+   */
+  logProcessingError(siteId, errorType, error, context = {}) {
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level: 'ERROR',
+      component: 'JobExecutor',
+      siteId,
+      errorType,
+      message: error instanceof Error ? error.message : String(error),
+      context
+    };
+    
+    // Include stack trace for debugging
+    if (error instanceof Error && error.stack) {
+      logEntry.stackTrace = error.stack;
+    }
+    
+    // Log to console with structured format
+    console.error(`[${logEntry.timestamp}] ${logEntry.level} ${logEntry.component}: Site ${siteId} - ${errorType}`);
+    console.error(`  Message: ${logEntry.message}`);
+    
+    if (Object.keys(context).length > 0) {
+      console.error(`  Context: ${JSON.stringify(context, null, 2)}`);
+    }
+    
+    if (logEntry.stackTrace && process.env.NODE_ENV !== 'production') {
+      console.error(`  Stack: ${logEntry.stackTrace}`);
+    }
+  }
+
+  /**
+   * Log processing warnings for non-fatal issues
+   * @param {string} siteId - Site identifier
+   * @param {Array} processingErrors - Array of processing errors
+   * @param {number} totalProcessed - Total entries processed successfully
+   * @private
+   */
+  logProcessingWarnings(siteId, processingErrors, totalProcessed) {
+    const errorCount = processingErrors.length;
+    const errorRate = totalProcessed > 0 ? (errorCount / (totalProcessed + errorCount) * 100).toFixed(2) : '100.00';
+    
+    console.warn(`[${new Date().toISOString()}] WARN JobExecutor: Site ${siteId} had ${errorCount} parsing errors (${errorRate}% error rate)`);
+    
+    // Log sample errors for debugging
+    const sampleErrors = processingErrors.slice(0, 3);
+    sampleErrors.forEach((error, index) => {
+      console.warn(`  Sample error ${index + 1}: ${error.error}`);
+      console.warn(`    Line: ${error.line}`);
+    });
+    
+    if (processingErrors.length > 3) {
+      console.warn(`  ... and ${processingErrors.length - 3} more errors`);
+    }
+  }
+
+  /**
+   * Categorize processing errors for better handling
+   * @param {Error} error - Error to categorize
+   * @returns {string} Error category
+   * @private
+   */
+  categorizeProcessingError(error) {
+    if (!error) return 'unknown';
+    
+    const message = error.message || String(error);
+    
+    if (message.includes('Log file not found') || message.includes('ENOENT')) {
+      return 'file_not_found';
+    }
+    if (message.includes('Permission denied') || message.includes('EACCES')) {
+      return 'permission_denied';
+    }
+    if (message.includes('YAML generation failed')) {
+      return 'yaml_generation_error';
+    }
+    if (message.includes('Failed to initialize')) {
+      return 'initialization_error';
+    }
+    if (message.includes('No log entries could be processed')) {
+      return 'no_processable_data';
+    }
+    if (message.includes('Failed to generate analytics')) {
+      return 'analytics_calculation_error';
+    }
+    
+    return 'processing_error';
+  }
+
+  /**
+   * Sanitize context data for logging (remove sensitive information)
+   * @param {Object} context - Context data
+   * @returns {Object} Sanitized context
+   * @private
+   */
+  sanitizeContext(context) {
+    if (!context || typeof context !== 'object') {
+      return {};
+    }
+    
+    const sanitized = {};
+    
+    // Include safe context fields
+    if (context.batchSize) sanitized.batchSize = context.batchSize;
+    if (context.timeout) sanitized.timeout = context.timeout;
+    if (context.maxMemoryMB) sanitized.maxMemoryMB = context.maxMemoryMB;
+    
+    return sanitized;
   }
 }
 
