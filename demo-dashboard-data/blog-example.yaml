@@ -1,0 +1,171 @@
+metadata:
+  site_id: blog-example
+  domain: blog.example.com
+  generated_at: '2026-01-11T16:43:51.243Z'
+  period:
+    start: '2024-01-01T00:00:00Z'
+    end: '2024-01-31T23:59:59Z'
+summary:
+  total_pageviews: 8920
+  unique_visitors: 5200
+  top_pages:
+    - path: /getting-started-guide
+      pageviews: 1200
+    - path: /best-practices
+      pageviews: 980
+    - path: /tutorials
+      pageviews: 850
+top_pages:
+  - path: /getting-started-guide
+    pageviews: 1200
+    unique_visitors: 980
+    percentage: 13.4
+  - path: /best-practices
+    pageviews: 980
+    unique_visitors: 750
+    percentage: 11
+  - path: /tutorials
+    pageviews: 850
+    unique_visitors: 620
+    percentage: 9.5
+  - path: /advanced-tips
+    pageviews: 720
+    unique_visitors: 520
+    percentage: 8.1
+  - path: /case-studies
+    pageviews: 650
+    unique_visitors: 480
+    percentage: 7.3
+  - path: /news
+    pageviews: 580
+    unique_visitors: 420
+    percentage: 6.5
+  - path: /reviews
+    pageviews: 520
+    unique_visitors: 380
+    percentage: 5.8
+  - path: /interviews
+    pageviews: 450
+    unique_visitors: 320
+    percentage: 5
+referrers:
+  by_domain:
+    - domain: google.com
+      visits: 2100
+      unique_visitors: 1500
+      percentage: 23.5
+    - domain: twitter.com
+      visits: 980
+      unique_visitors: 720
+      percentage: 11
+    - domain: reddit.com
+      visits: 850
+      unique_visitors: 620
+      percentage: 9.5
+    - domain: hackernews.com
+      visits: 650
+      unique_visitors: 480
+      percentage: 7.3
+    - domain: medium.com
+      visits: 520
+      unique_visitors: 380
+      percentage: 5.8
+    - domain: dev.to
+      visits: 420
+      unique_visitors: 320
+      percentage: 4.7
+time_series:
+  daily:
+    - date: '2024-01-01'
+      pageviews: 185
+      unique_visitors: 120
+    - date: '2024-01-02'
+      pageviews: 318
+      unique_visitors: 207
+    - date: '2024-01-03'
+      pageviews: 276
+      unique_visitors: 179
+    - date: '2024-01-04'
+      pageviews: 257
+      unique_visitors: 167
+    - date: '2024-01-05'
+      pageviews: 271
+      unique_visitors: 176
+    - date: '2024-01-06'
+      pageviews: 314
+      unique_visitors: 204
+    - date: '2024-01-07'
+      pageviews: 250
+      unique_visitors: 163
+    - date: '2024-01-08'
+      pageviews: 228
+      unique_visitors: 148
+    - date: '2024-01-09'
+      pageviews: 272
+      unique_visitors: 177
+    - date: '2024-01-10'
+      pageviews: 343
+      unique_visitors: 223
+    - date: '2024-01-11'
+      pageviews: 261
+      unique_visitors: 170
+    - date: '2024-01-12'
+      pageviews: 341
+      unique_visitors: 222
+    - date: '2024-01-13'
+      pageviews: 308
+      unique_visitors: 200
+    - date: '2024-01-14'
+      pageviews: 251
+      unique_visitors: 163
+    - date: '2024-01-15'
+      pageviews: 184
+      unique_visitors: 120
+    - date: '2024-01-16'
+      pageviews: 271
+      unique_visitors: 176
+    - date: '2024-01-17'
+      pageviews: 326
+      unique_visitors: 212
+    - date: '2024-01-18'
+      pageviews: 325
+      unique_visitors: 211
+    - date: '2024-01-19'
+      pageviews: 278
+      unique_visitors: 181
+    - date: '2024-01-20'
+      pageviews: 340
+      unique_visitors: 221
+    - date: '2024-01-21'
+      pageviews: 210
+      unique_visitors: 137
+    - date: '2024-01-22'
+      pageviews: 210
+      unique_visitors: 137
+    - date: '2024-01-23'
+      pageviews: 263
+      unique_visitors: 171
+    - date: '2024-01-24'
+      pageviews: 247
+      unique_visitors: 161
+    - date: '2024-01-25'
+      pageviews: 301
+      unique_visitors: 196
+    - date: '2024-01-26'
+      pageviews: 354
+      unique_visitors: 230
+    - date: '2024-01-27'
+      pageviews: 274
+      unique_visitors: 178
+    - date: '2024-01-28'
+      pageviews: 233
+      unique_visitors: 151
+    - date: '2024-01-29'
+      pageviews: 182
+      unique_visitors: 118
+    - date: '2024-01-30'
+      pageviews: 353
+      unique_visitors: 229
+    - date: '2024-01-31'
+      pageviews: 333
+      unique_visitors: 216

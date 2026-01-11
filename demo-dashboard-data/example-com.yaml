@@ -1,0 +1,187 @@
+metadata:
+  site_id: example-com
+  domain: example.com
+  generated_at: '2026-01-11T16:43:51.238Z'
+  period:
+    start: '2024-01-01T00:00:00Z'
+    end: '2024-01-31T23:59:59Z'
+summary:
+  total_pageviews: 15420
+  unique_visitors: 8750
+  top_pages:
+    - path: /
+      pageviews: 4200
+    - path: /about
+      pageviews: 2100
+    - path: /contact
+      pageviews: 1800
+top_pages:
+  - path: /
+    pageviews: 4200
+    unique_visitors: 2800
+    percentage: 27.2
+  - path: /about
+    pageviews: 2100
+    unique_visitors: 1650
+    percentage: 13.6
+  - path: /contact
+    pageviews: 1800
+    unique_visitors: 1200
+    percentage: 11.7
+  - path: /products
+    pageviews: 1500
+    unique_visitors: 980
+    percentage: 9.7
+  - path: /blog
+    pageviews: 1200
+    unique_visitors: 850
+    percentage: 7.8
+  - path: /pricing
+    pageviews: 980
+    unique_visitors: 720
+    percentage: 6.4
+  - path: /features
+    pageviews: 850
+    unique_visitors: 600
+    percentage: 5.5
+  - path: /support
+    pageviews: 720
+    unique_visitors: 480
+    percentage: 4.7
+  - path: /docs
+    pageviews: 650
+    unique_visitors: 420
+    percentage: 4.2
+  - path: /login
+    pageviews: 520
+    unique_visitors: 380
+    percentage: 3.4
+referrers:
+  by_domain:
+    - domain: google.com
+      visits: 3200
+      unique_visitors: 2100
+      percentage: 20.8
+    - domain: facebook.com
+      visits: 1800
+      unique_visitors: 1200
+      percentage: 11.7
+    - domain: twitter.com
+      visits: 1200
+      unique_visitors: 850
+      percentage: 7.8
+    - domain: linkedin.com
+      visits: 980
+      unique_visitors: 720
+      percentage: 6.4
+    - domain: reddit.com
+      visits: 650
+      unique_visitors: 480
+      percentage: 4.2
+    - domain: github.com
+      visits: 520
+      unique_visitors: 380
+      percentage: 3.4
+    - domain: stackoverflow.com
+      visits: 420
+      unique_visitors: 320
+      percentage: 2.7
+    - domain: medium.com
+      visits: 350
+      unique_visitors: 280
+      percentage: 2.3
+time_series:
+  daily:
+    - date: '2024-01-01'
+      pageviews: 385
+      unique_visitors: 250
+    - date: '2024-01-02'
+      pageviews: 415
+      unique_visitors: 270
+    - date: '2024-01-03'
+      pageviews: 467
+      unique_visitors: 304
+    - date: '2024-01-04'
+      pageviews: 590
+      unique_visitors: 384
+    - date: '2024-01-05'
+      pageviews: 510
+      unique_visitors: 332
+    - date: '2024-01-06'
+      pageviews: 533
+      unique_visitors: 346
+    - date: '2024-01-07'
+      pageviews: 283
+      unique_visitors: 184
+    - date: '2024-01-08'
+      pageviews: 338
+      unique_visitors: 220
+    - date: '2024-01-09'
+      pageviews: 489
+      unique_visitors: 318
+    - date: '2024-01-10'
+      pageviews: 564
+      unique_visitors: 367
+    - date: '2024-01-11'
+      pageviews: 573
+      unique_visitors: 372
+    - date: '2024-01-12'
+      pageviews: 522
+      unique_visitors: 339
+    - date: '2024-01-13'
+      pageviews: 539
+      unique_visitors: 350
+    - date: '2024-01-14'
+      pageviews: 308
+      unique_visitors: 200
+    - date: '2024-01-15'
+      pageviews: 357
+      unique_visitors: 232
+    - date: '2024-01-16'
+      pageviews: 494
+      unique_visitors: 321
+    - date: '2024-01-17'
+      pageviews: 458
+      unique_visitors: 298
+    - date: '2024-01-18'
+      pageviews: 529
+      unique_visitors: 344
+    - date: '2024-01-19'
+      pageviews: 498
+      unique_visitors: 324
+    - date: '2024-01-20'
+      pageviews: 471
+      unique_visitors: 306
+    - date: '2024-01-21'
+      pageviews: 347
+      unique_visitors: 226
+    - date: '2024-01-22'
+      pageviews: 329
+      unique_visitors: 214
+    - date: '2024-01-23'
+      pageviews: 403
+      unique_visitors: 262
+    - date: '2024-01-24'
+      pageviews: 587
+      unique_visitors: 382
+    - date: '2024-01-25'
+      pageviews: 582
+      unique_visitors: 378
+    - date: '2024-01-26'
+      pageviews: 445
+      unique_visitors: 289
+    - date: '2024-01-27'
+      pageviews: 420
+      unique_visitors: 273
+    - date: '2024-01-28'
+      pageviews: 321
+      unique_visitors: 209
+    - date: '2024-01-29'
+      pageviews: 362
+      unique_visitors: 235
+    - date: '2024-01-30'
+      pageviews: 571
+      unique_visitors: 371
+    - date: '2024-01-31'
+      pageviews: 428
+      unique_visitors: 278

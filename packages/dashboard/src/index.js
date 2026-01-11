@@ -2,7 +2,8 @@
  * @fileoverview Main entry point for the dashboard package
  */
 
-// Placeholder - will be implemented in subsequent tasks
+const { StaticDashboard } = require('./static-dashboard');
+
 module.exports = {
-  // Dashboard exports will be added here
+  StaticDashboard
 };
