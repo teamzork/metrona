@@ -380,17 +380,52 @@ Note: The service runs as user "${this.user}" for security.
    * @returns {Promise<boolean>} True if service file is valid
    */
   async validateServiceFile(servicePath) {
-    const { exec } = require('child_process');
-    const { promisify } = require('util');
-    const execAsync = promisify(exec);
-    
     try {
+      // Check if systemd-analyze is available (Linux only)
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+      
+      await execAsync('which systemd-analyze');
+      
+      // If available, use systemd-analyze for validation
       await execAsync(`systemd-analyze verify ${servicePath}`);
       return true;
+      
     } catch (error) {
-      console.error('❌ Service file validation failed:');
-      console.error(error.message);
-      return false;
+      // If systemd-analyze is not available (e.g., on macOS), do basic validation
+      try {
+        const content = await fs.readFile(servicePath, 'utf8');
+        
+        // Check for required sections
+        const requiredSections = ['[Unit]', '[Service]', '[Install]'];
+        for (const section of requiredSections) {
+          if (!content.includes(section)) {
+            console.error(`❌ Service file missing required section: ${section}`);
+            return false;
+          }
+        }
+        
+        // Check for required fields
+        const requiredFields = [
+          'Description=',
+          'ExecStart=',
+          'Type=',
+          'WantedBy='
+        ];
+        for (const field of requiredFields) {
+          if (!content.includes(field)) {
+            console.error(`❌ Service file missing required field: ${field}`);
+            return false;
+          }
+        }
+        
+        return true;
+        
+      } catch (readError) {
+        console.error('❌ Service file validation failed:', readError.message);
+        return false;
+      }
     }
   }
 }
