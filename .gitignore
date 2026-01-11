@@ -64,3 +64,12 @@ analytics-data/
 # Backup files
 *.backup
 *.bak
+
+# TypeScript declaration files (build artifacts)
+*.d.ts
+*.d.ts.map
+
+# Test output directories
+**/property-test-output-*/
+**/non-existent-*/
+test-temp/

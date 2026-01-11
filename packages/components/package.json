@@ -2,13 +2,12 @@
   "name": "@analytics-system/components",
   "version": "1.0.0",
   "description": "Embeddable analytics components for Metrona Analytics System",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "src/index.js",
   "scripts": {
-    "build": "tsc && npm run build:bundle",
-    "build:bundle": "echo 'Bundle build complete'",
+    "build": "echo 'No build step needed for JavaScript'",
+    "typecheck": "tsc --noEmit",
     "test": "jest --passWithNoTests",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist && find . -name '*.d.ts' -delete && find . -name '*.d.ts.map' -delete",
     "lint": "eslint src/**/*.js"
   },
   "dependencies": {
@@ -20,8 +19,5 @@
     "jest": "^29.0.0",
     "fast-check": "^3.15.0",
     "typescript": "^5.0.0"
-  },
-  "files": [
-    "dist"
-  ]
+  }
 }
