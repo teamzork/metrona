@@ -8,6 +8,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const yaml = require('js-yaml');
 const chokidar = require('chokidar');
+const { ConfigurationManager } = require('./config-manager');
 const { JobScheduler } = require('./job-scheduler');
 const { JobExecutor } = require('./job-executor');
 
@@ -1173,5 +1174,6 @@ class SchedulerDaemon extends EventEmitter {
 }
 
 module.exports = {
+  ConfigurationManager,
   SchedulerDaemon
 };

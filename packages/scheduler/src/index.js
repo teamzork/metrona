@@ -5,10 +5,13 @@
 
 const { JobScheduler } = require('./job-scheduler');
 const { JobExecutor } = require('./job-executor');
-const { SchedulerDaemon } = require('./scheduler-daemon');
+const { SchedulerDaemon, ConfigurationManager } = require('./scheduler-daemon');
+const { BackupManager } = require('./backup-manager');
 
 module.exports = {
   JobScheduler,
   JobExecutor,
-  SchedulerDaemon
+  SchedulerDaemon,
+  ConfigurationManager,
+  BackupManager
 };
