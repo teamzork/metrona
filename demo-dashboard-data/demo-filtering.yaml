@@ -1,0 +1,240 @@
+metadata:
+  site: demo-filtering.com
+  generated_at: '2026-01-11T18:06:15.477Z'
+summary:
+  total_pageviews: 19411
+  unique_visitors: 244
+  top_pages:
+    - path: /
+      pageviews: 1500
+      unique_visitors: 800
+      percentage: 25
+    - path: /blog
+      pageviews: 1200
+      unique_visitors: 600
+      percentage: 20
+    - path: /about
+      pageviews: 800
+      unique_visitors: 400
+      percentage: 13.3
+top_pages:
+  - path: /
+    pageviews: 1500
+    unique_visitors: 800
+    percentage: 25
+  - path: /blog
+    pageviews: 1200
+    unique_visitors: 600
+    percentage: 20
+  - path: /about
+    pageviews: 800
+    unique_visitors: 400
+    percentage: 13.3
+  - path: /contact
+    pageviews: 600
+    unique_visitors: 300
+    percentage: 10
+  - path: /products
+    pageviews: 500
+    unique_visitors: 250
+    percentage: 8.3
+referrers:
+  by_domain:
+    - domain: google.com
+      visits: 2000
+      unique_visitors: 1200
+      percentage: 33.3
+    - domain: facebook.com
+      visits: 800
+      unique_visitors: 500
+      percentage: 13.3
+    - domain: twitter.com
+      visits: 600
+      unique_visitors: 400
+      percentage: 10
+    - domain: direct
+      visits: 1500
+      unique_visitors: 900
+      percentage: 25
+time_series:
+  daily:
+    - date: '2025-11-13'
+      pageviews: 365
+      unique_visitors: 114
+    - date: '2025-11-14'
+      pageviews: 548
+      unique_visitors: 92
+    - date: '2025-11-15'
+      pageviews: 164
+      unique_visitors: 174
+    - date: '2025-11-16'
+      pageviews: 587
+      unique_visitors: 106
+    - date: '2025-11-17'
+      pageviews: 185
+      unique_visitors: 103
+    - date: '2025-11-18'
+      pageviews: 524
+      unique_visitors: 95
+    - date: '2025-11-19'
+      pageviews: 491
+      unique_visitors: 234
+    - date: '2025-11-20'
+      pageviews: 569
+      unique_visitors: 244
+    - date: '2025-11-21'
+      pageviews: 243
+      unique_visitors: 96
+    - date: '2025-11-22'
+      pageviews: 122
+      unique_visitors: 222
+    - date: '2025-11-23'
+      pageviews: 362
+      unique_visitors: 129
+    - date: '2025-11-24'
+      pageviews: 204
+      unique_visitors: 182
+    - date: '2025-11-25'
+      pageviews: 213
+      unique_visitors: 107
+    - date: '2025-11-26'
+      pageviews: 367
+      unique_visitors: 185
+    - date: '2025-11-27'
+      pageviews: 181
+      unique_visitors: 76
+    - date: '2025-11-28'
+      pageviews: 492
+      unique_visitors: 174
+    - date: '2025-11-29'
+      pageviews: 213
+      unique_visitors: 231
+    - date: '2025-11-30'
+      pageviews: 153
+      unique_visitors: 85
+    - date: '2025-12-01'
+      pageviews: 293
+      unique_visitors: 76
+    - date: '2025-12-02'
+      pageviews: 284
+      unique_visitors: 115
+    - date: '2025-12-03'
+      pageviews: 490
+      unique_visitors: 234
+    - date: '2025-12-04'
+      pageviews: 191
+      unique_visitors: 202
+    - date: '2025-12-05'
+      pageviews: 138
+      unique_visitors: 215
+    - date: '2025-12-06'
+      pageviews: 514
+      unique_visitors: 165
+    - date: '2025-12-07'
+      pageviews: 239
+      unique_visitors: 244
+    - date: '2025-12-08'
+      pageviews: 175
+      unique_visitors: 59
+    - date: '2025-12-09'
+      pageviews: 365
+      unique_visitors: 110
+    - date: '2025-12-10'
+      pageviews: 145
+      unique_visitors: 178
+    - date: '2025-12-11'
+      pageviews: 148
+      unique_visitors: 80
+    - date: '2025-12-12'
+      pageviews: 335
+      unique_visitors: 219
+    - date: '2025-12-13'
+      pageviews: 188
+      unique_visitors: 137
+    - date: '2025-12-14'
+      pageviews: 541
+      unique_visitors: 146
+    - date: '2025-12-15'
+      pageviews: 420
+      unique_visitors: 57
+    - date: '2025-12-16'
+      pageviews: 105
+      unique_visitors: 110
+    - date: '2025-12-17'
+      pageviews: 340
+      unique_visitors: 59
+    - date: '2025-12-18'
+      pageviews: 303
+      unique_visitors: 89
+    - date: '2025-12-19'
+      pageviews: 182
+      unique_visitors: 182
+    - date: '2025-12-20'
+      pageviews: 204
+      unique_visitors: 118
+    - date: '2025-12-21'
+      pageviews: 584
+      unique_visitors: 192
+    - date: '2025-12-22'
+      pageviews: 190
+      unique_visitors: 234
+    - date: '2025-12-23'
+      pageviews: 229
+      unique_visitors: 141
+    - date: '2025-12-24'
+      pageviews: 572
+      unique_visitors: 146
+    - date: '2025-12-25'
+      pageviews: 224
+      unique_visitors: 71
+    - date: '2025-12-26'
+      pageviews: 302
+      unique_visitors: 228
+    - date: '2025-12-27'
+      pageviews: 441
+      unique_visitors: 115
+    - date: '2025-12-28'
+      pageviews: 271
+      unique_visitors: 175
+    - date: '2025-12-29'
+      pageviews: 435
+      unique_visitors: 62
+    - date: '2025-12-30'
+      pageviews: 597
+      unique_visitors: 69
+    - date: '2025-12-31'
+      pageviews: 229
+      unique_visitors: 85
+    - date: '2026-01-01'
+      pageviews: 245
+      unique_visitors: 88
+    - date: '2026-01-02'
+      pageviews: 231
+      unique_visitors: 160
+    - date: '2026-01-03'
+      pageviews: 590
+      unique_visitors: 181
+    - date: '2026-01-04'
+      pageviews: 214
+      unique_visitors: 130
+    - date: '2026-01-05'
+      pageviews: 495
+      unique_visitors: 144
+    - date: '2026-01-06'
+      pageviews: 380
+      unique_visitors: 118
+    - date: '2026-01-07'
+      pageviews: 329
+      unique_visitors: 204
+    - date: '2026-01-08'
+      pageviews: 309
+      unique_visitors: 51
+    - date: '2026-01-09'
+      pageviews: 232
+      unique_visitors: 99
+    - date: '2026-01-10'
+      pageviews: 433
+      unique_visitors: 168
+    - date: '2026-01-11'
+      pageviews: 296
+      unique_visitors: 210

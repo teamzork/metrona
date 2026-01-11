@@ -52,6 +52,73 @@ body {
     text-decoration: underline;
 }
 
+/* Controls section */
+.controls-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.date-range-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.date-range-controls label {
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.date-range-controls select {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #2d3748;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.date-range-controls select:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.export-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.export-btn {
+    padding: 8px 16px;
+    background: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.export-btn:hover {
+    background: #3182ce;
+}
+
+.export-btn:active {
+    transform: translateY(1px);
+}
+
 /* Cards */
 .overview-cards {
     display: grid;
@@ -300,6 +367,19 @@ body {
         font-size: 2rem;
     }
     
+    .controls-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-range-controls {
+        justify-content: center;
+    }
+    
+    .export-controls {
+        justify-content: center;
+    }
+    
     .overview-cards {
         grid-template-columns: 1fr;
         gap: 16px;
@@ -327,6 +407,19 @@ body {
 @media (max-width: 480px) {
     .header h1 {
         font-size: 1.8rem;
+    }
+    
+    .controls-section {
+        padding: 16px;
+    }
+    
+    .export-controls {
+        flex-direction: column;
+    }
+    
+    .export-btn {
+        width: 100%;
+        margin-bottom: 8px;
     }
     
     .metric {

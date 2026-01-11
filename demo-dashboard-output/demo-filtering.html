@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>demo-filtering.com - Analytics</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <nav class="breadcrumb">
+                <a href="index.html">← Dashboard</a>
+            </nav>
+            <h1>📈 demo-filtering.com</h1>
+            <p class="subtitle">Analytics Overview</p>
+        </header>
+
+        <div class="controls-section">
+            <div class="date-range-controls">
+                <label for="dateRange">Date Range:</label>
+                <select id="dateRange" onchange="filterByDateRange(this.value)">
+                    <option value="all">All Time</option>
+                    <option value="1d">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                    <option value="1y">Last Year</option>
+                </select>
+            </div>
+            <div class="export-controls">
+                <button onclick="exportData('summary')" class="export-btn">📊 Export Summary</button>
+                <button onclick="exportData('pages')" class="export-btn">📄 Export Pages</button>
+                <button onclick="exportData('referrers')" class="export-btn">🔗 Export Referrers</button>
+                <button onclick="exportData('timeseries')" class="export-btn">📈 Export Time Series</button>
+            </div>
+        </div>
+
+        <div class="overview-cards">
+            <div class="card">
+                <h3>Total Pageviews</h3>
+                <div class="metric" id="totalPageviews">19,411</div>
+            </div>
+            <div class="card">
+                <h3>Unique Visitors</h3>
+                <div class="metric" id="uniqueVisitors">244</div>
+            </div>
+            <div class="card">
+                <h3>Top Page</h3>
+                <div class="metric-small" id="topPage">/</div>
+                <div class="sub-metric" id="topPageViews">1500 views</div>
+            </div>
+        </div>
+
+        <div id="contentSections">
+            
+        <div class="section">
+            <h2>🔥 Top Pages</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Page</th>
+                            <th>Pageviews</th>
+                            <th>Unique Visitors</th>
+                            <th>Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                            <tr>
+                                <td class="page-path">/</td>
+                                <td>1,500</td>
+                                <td>800</td>
+                                <td>25.0%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="page-path">/blog</td>
+                                <td>1,200</td>
+                                <td>600</td>
+                                <td>20.0%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="page-path">/about</td>
+                                <td>800</td>
+                                <td>400</td>
+                                <td>13.3%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="page-path">/contact</td>
+                                <td>600</td>
+                                <td>300</td>
+                                <td>10.0%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="page-path">/products</td>
+                                <td>500</td>
+                                <td>250</td>
+                                <td>8.3%</td>
+                            </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+            
+        <div class="section">
+            <h2>🔗 Top Referrers</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Domain</th>
+                            <th>Visits</th>
+                            <th>Unique Visitors</th>
+                            <th>Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                            <tr>
+                                <td class="referrer-domain">google.com</td>
+                                <td>2,000</td>
+                                <td>1,200</td>
+                                <td>33.3%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="referrer-domain">facebook.com</td>
+                                <td>800</td>
+                                <td>500</td>
+                                <td>13.3%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="referrer-domain">twitter.com</td>
+                                <td>600</td>
+                                <td>400</td>
+                                <td>10.0%</td>
+                            </tr>
+                        
+                            <tr>
+                                <td class="referrer-domain">direct</td>
+                                <td>1,500</td>
+                                <td>900</td>
+                                <td>25.0%</td>
+                            </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+            
+        <div class="section">
+            <h2>📊 Traffic Trends (Last 30 Days)</h2>
+            <div class="chart-container">
+                <canvas id="trafficChart" width="800" height="300"></canvas>
+            </div>
+            <div class="chart-legend">
+                <span class="legend-item">
+                    <span class="legend-color pageviews"></span>
+                    Pageviews
+                </span>
+                <span class="legend-item">
+                    <span class="legend-color visitors"></span>
+                    Unique Visitors
+                </span>
+            </div>
+        </div>
+        
+        <script>
+            // Embed chart data for JavaScript
+            window.chartData = [{"date":"2025-12-13","pageviews":188,"unique_visitors":137},{"date":"2025-12-14","pageviews":541,"unique_visitors":146},{"date":"2025-12-15","pageviews":420,"unique_visitors":57},{"date":"2025-12-16","pageviews":105,"unique_visitors":110},{"date":"2025-12-17","pageviews":340,"unique_visitors":59},{"date":"2025-12-18","pageviews":303,"unique_visitors":89},{"date":"2025-12-19","pageviews":182,"unique_visitors":182},{"date":"2025-12-20","pageviews":204,"unique_visitors":118},{"date":"2025-12-21","pageviews":584,"unique_visitors":192},{"date":"2025-12-22","pageviews":190,"unique_visitors":234},{"date":"2025-12-23","pageviews":229,"unique_visitors":141},{"date":"2025-12-24","pageviews":572,"unique_visitors":146},{"date":"2025-12-25","pageviews":224,"unique_visitors":71},{"date":"2025-12-26","pageviews":302,"unique_visitors":228},{"date":"2025-12-27","pageviews":441,"unique_visitors":115},{"date":"2025-12-28","pageviews":271,"unique_visitors":175},{"date":"2025-12-29","pageviews":435,"unique_visitors":62},{"date":"2025-12-30","pageviews":597,"unique_visitors":69},{"date":"2025-12-31","pageviews":229,"unique_visitors":85},{"date":"2026-01-01","pageviews":245,"unique_visitors":88},{"date":"2026-01-02","pageviews":231,"unique_visitors":160},{"date":"2026-01-03","pageviews":590,"unique_visitors":181},{"date":"2026-01-04","pageviews":214,"unique_visitors":130},{"date":"2026-01-05","pageviews":495,"unique_visitors":144},{"date":"2026-01-06","pageviews":380,"unique_visitors":118},{"date":"2026-01-07","pageviews":329,"unique_visitors":204},{"date":"2026-01-08","pageviews":309,"unique_visitors":51},{"date":"2026-01-09","pageviews":232,"unique_visitors":99},{"date":"2026-01-10","pageviews":433,"unique_visitors":168},{"date":"2026-01-11","pageviews":296,"unique_visitors":210}];
+        </script>
+        </div>
+
+        <footer class="footer">
+            <p>Last updated: 1/11/2026, 1:06:15 PM</p>
+            <p>Data generated at: 1/11/2026, 1:06:15 PM</p>
+        </footer>
+    </div>
+
+    <script>
+        // Embed full site data for JavaScript processing
+        window.siteData = {"metadata":{"site":"demo-filtering.com","generated_at":"2026-01-11T18:06:15.477Z"},"summary":{"total_pageviews":19411,"unique_visitors":244,"top_pages":[{"path":"/","pageviews":1500,"unique_visitors":800,"percentage":25},{"path":"/blog","pageviews":1200,"unique_visitors":600,"percentage":20},{"path":"/about","pageviews":800,"unique_visitors":400,"percentage":13.3}]},"top_pages":[{"path":"/","pageviews":1500,"unique_visitors":800,"percentage":25},{"path":"/blog","pageviews":1200,"unique_visitors":600,"percentage":20},{"path":"/about","pageviews":800,"unique_visitors":400,"percentage":13.3},{"path":"/contact","pageviews":600,"unique_visitors":300,"percentage":10},{"path":"/products","pageviews":500,"unique_visitors":250,"percentage":8.3}],"referrers":{"by_domain":[{"domain":"google.com","visits":2000,"unique_visitors":1200,"percentage":33.3},{"domain":"facebook.com","visits":800,"unique_visitors":500,"percentage":13.3},{"domain":"twitter.com","visits":600,"unique_visitors":400,"percentage":10},{"domain":"direct","visits":1500,"unique_visitors":900,"percentage":25}]},"time_series":{"daily":[{"date":"2025-11-13","pageviews":365,"unique_visitors":114},{"date":"2025-11-14","pageviews":548,"unique_visitors":92},{"date":"2025-11-15","pageviews":164,"unique_visitors":174},{"date":"2025-11-16","pageviews":587,"unique_visitors":106},{"date":"2025-11-17","pageviews":185,"unique_visitors":103},{"date":"2025-11-18","pageviews":524,"unique_visitors":95},{"date":"2025-11-19","pageviews":491,"unique_visitors":234},{"date":"2025-11-20","pageviews":569,"unique_visitors":244},{"date":"2025-11-21","pageviews":243,"unique_visitors":96},{"date":"2025-11-22","pageviews":122,"unique_visitors":222},{"date":"2025-11-23","pageviews":362,"unique_visitors":129},{"date":"2025-11-24","pageviews":204,"unique_visitors":182},{"date":"2025-11-25","pageviews":213,"unique_visitors":107},{"date":"2025-11-26","pageviews":367,"unique_visitors":185},{"date":"2025-11-27","pageviews":181,"unique_visitors":76},{"date":"2025-11-28","pageviews":492,"unique_visitors":174},{"date":"2025-11-29","pageviews":213,"unique_visitors":231},{"date":"2025-11-30","pageviews":153,"unique_visitors":85},{"date":"2025-12-01","pageviews":293,"unique_visitors":76},{"date":"2025-12-02","pageviews":284,"unique_visitors":115},{"date":"2025-12-03","pageviews":490,"unique_visitors":234},{"date":"2025-12-04","pageviews":191,"unique_visitors":202},{"date":"2025-12-05","pageviews":138,"unique_visitors":215},{"date":"2025-12-06","pageviews":514,"unique_visitors":165},{"date":"2025-12-07","pageviews":239,"unique_visitors":244},{"date":"2025-12-08","pageviews":175,"unique_visitors":59},{"date":"2025-12-09","pageviews":365,"unique_visitors":110},{"date":"2025-12-10","pageviews":145,"unique_visitors":178},{"date":"2025-12-11","pageviews":148,"unique_visitors":80},{"date":"2025-12-12","pageviews":335,"unique_visitors":219},{"date":"2025-12-13","pageviews":188,"unique_visitors":137},{"date":"2025-12-14","pageviews":541,"unique_visitors":146},{"date":"2025-12-15","pageviews":420,"unique_visitors":57},{"date":"2025-12-16","pageviews":105,"unique_visitors":110},{"date":"2025-12-17","pageviews":340,"unique_visitors":59},{"date":"2025-12-18","pageviews":303,"unique_visitors":89},{"date":"2025-12-19","pageviews":182,"unique_visitors":182},{"date":"2025-12-20","pageviews":204,"unique_visitors":118},{"date":"2025-12-21","pageviews":584,"unique_visitors":192},{"date":"2025-12-22","pageviews":190,"unique_visitors":234},{"date":"2025-12-23","pageviews":229,"unique_visitors":141},{"date":"2025-12-24","pageviews":572,"unique_visitors":146},{"date":"2025-12-25","pageviews":224,"unique_visitors":71},{"date":"2025-12-26","pageviews":302,"unique_visitors":228},{"date":"2025-12-27","pageviews":441,"unique_visitors":115},{"date":"2025-12-28","pageviews":271,"unique_visitors":175},{"date":"2025-12-29","pageviews":435,"unique_visitors":62},{"date":"2025-12-30","pageviews":597,"unique_visitors":69},{"date":"2025-12-31","pageviews":229,"unique_visitors":85},{"date":"2026-01-01","pageviews":245,"unique_visitors":88},{"date":"2026-01-02","pageviews":231,"unique_visitors":160},{"date":"2026-01-03","pageviews":590,"unique_visitors":181},{"date":"2026-01-04","pageviews":214,"unique_visitors":130},{"date":"2026-01-05","pageviews":495,"unique_visitors":144},{"date":"2026-01-06","pageviews":380,"unique_visitors":118},{"date":"2026-01-07","pageviews":329,"unique_visitors":204},{"date":"2026-01-08","pageviews":309,"unique_visitors":51},{"date":"2026-01-09","pageviews":232,"unique_visitors":99},{"date":"2026-01-10","pageviews":433,"unique_visitors":168},{"date":"2026-01-11","pageviews":296,"unique_visitors":210}]}};
+        window.siteId = 'demo-filtering';
+    </script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

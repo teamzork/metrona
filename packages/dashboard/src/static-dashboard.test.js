@@ -293,6 +293,140 @@ describe('StaticDashboard', () => {
     });
   });
 
+  describe('filterDataByDateRange', () => {
+    test('should return original data for "all" range', () => {
+      const data = {
+        summary: { total_pageviews: 1000 },
+        time_series: { daily: [{ date: '2024-01-01', pageviews: 100 }] }
+      };
+      
+      const result = dashboard.filterDataByDateRange(data, 'all');
+      expect(result).toEqual(data);
+    });
+
+    test('should filter daily data by date range', () => {
+      const now = new Date();
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000); // 2 hours ago
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const data = {
+        summary: { total_pageviews: 1000 },
+        time_series: {
+          daily: [
+            { date: weekAgo.toISOString().split('T')[0], pageviews: 100, unique_visitors: 50 },
+            { date: twoHoursAgo.toISOString().split('T')[0], pageviews: 200, unique_visitors: 100 }
+          ]
+        }
+      };
+      
+      const result = dashboard.filterDataByDateRange(data, '1d');
+      expect(result.time_series.daily).toHaveLength(1);
+      expect(result.time_series.daily[0].pageviews).toBe(200);
+      expect(result.summary.total_pageviews).toBe(200);
+    });
+
+    test('should handle empty time series data', () => {
+      const data = { summary: { total_pageviews: 1000 } };
+      
+      const result = dashboard.filterDataByDateRange(data, '7d');
+      expect(result).toEqual(data);
+    });
+  });
+
+  describe('generateCSVExport', () => {
+    test('should generate summary CSV', () => {
+      const data = {
+        metadata: { site: 'example.com', generated_at: '2024-01-01T00:00:00Z' },
+        summary: { total_pageviews: 1000, unique_visitors: 500 }
+      };
+      
+      const csv = dashboard.generateCSVExport(data, 'summary');
+      expect(csv).toContain('Metric,Value');
+      expect(csv).toContain('example.com');
+      expect(csv).toContain('1000');
+      expect(csv).toContain('500');
+    });
+
+    test('should generate pages CSV', () => {
+      const data = {
+        top_pages: [
+          { path: '/', pageviews: 300, unique_visitors: 200, percentage: 30.0 },
+          { path: '/about', pageviews: 200, unique_visitors: 150, percentage: 20.0 }
+        ]
+      };
+      
+      const csv = dashboard.generateCSVExport(data, 'pages');
+      expect(csv).toContain('Path,Pageviews,Unique Visitors,Percentage');
+      expect(csv).toContain('/,300,200,30.00%');
+      expect(csv).toContain('/about,200,150,20.00%');
+    });
+
+    test('should generate referrers CSV', () => {
+      const data = {
+        referrers: {
+          by_domain: [
+            { domain: 'google.com', visits: 100, unique_visitors: 80, percentage: 10.0 }
+          ]
+        }
+      };
+      
+      const csv = dashboard.generateCSVExport(data, 'referrers');
+      expect(csv).toContain('Domain,Visits,Unique Visitors,Percentage');
+      expect(csv).toContain('google.com,100,80,10.00%');
+    });
+
+    test('should generate time series CSV', () => {
+      const data = {
+        time_series: {
+          daily: [
+            { date: '2024-01-01', pageviews: 50, unique_visitors: 30 },
+            { date: '2024-01-02', pageviews: 60, unique_visitors: 35 }
+          ]
+        }
+      };
+      
+      const csv = dashboard.generateCSVExport(data, 'timeseries');
+      expect(csv).toContain('Date,Pageviews,Unique Visitors');
+      expect(csv).toContain('2024-01-01,50,30');
+      expect(csv).toContain('2024-01-02,60,35');
+    });
+
+    test('should throw error for unknown export type', () => {
+      const data = { summary: {} };
+      expect(() => dashboard.generateCSVExport(data, 'unknown')).toThrow('Unknown export type: unknown');
+    });
+
+    test('should throw error for missing data', () => {
+      expect(() => dashboard.generateCSVExport(null, 'summary')).toThrow('No data available for export');
+    });
+  });
+
+  describe('arrayToCSV', () => {
+    test('should convert simple array to CSV', () => {
+      const rows = [
+        ['Name', 'Age', 'City'],
+        ['John', 30, 'New York'],
+        ['Jane', 25, 'Boston']
+      ];
+      
+      const csv = dashboard.arrayToCSV(rows);
+      expect(csv).toBe('Name,Age,City\nJohn,30,New York\nJane,25,Boston');
+    });
+
+    test('should escape CSV special characters', () => {
+      const rows = [
+        ['Name', 'Description'],
+        ['Test, Inc.', 'A "quoted" description'],
+        ['Multi\nLine', 'Normal text']
+      ];
+      
+      const csv = dashboard.arrayToCSV(rows);
+      expect(csv).toContain('"Test, Inc."');
+      expect(csv).toContain('"A ""quoted"" description"');
+      expect(csv).toContain('"Multi\nLine"');
+    });
+  });
+
   describe('escapeHtml', () => {
     test('should escape HTML special characters', () => {
       expect(dashboard.escapeHtml('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');

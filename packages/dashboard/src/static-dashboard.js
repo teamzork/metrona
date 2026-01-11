@@ -1,7 +1,8 @@
 /**
  * @fileoverview Static Dashboard for Metrona Analytics System
  * Provides HTML/CSS/JS interface for viewing analytics data from YAML files
- * Validates Requirements 5.1, 5.2, 5.5
+ * Includes date range filtering and CSV export functionality
+ * Validates Requirements 5.1, 5.2, 5.3, 5.5, 5.6
  */
 
 const fs = require('fs').promises;
@@ -37,7 +38,7 @@ class StaticDashboard {
       // Copy static assets
       await this.copyStaticAssets();
       
-      console.log(`✅ Static dashboard generated in: ${this.outputDir}`);
+      console.log('✅ Static dashboard generated in: ' + this.outputDir);
       
       return {
         success: true,
@@ -47,7 +48,7 @@ class StaticDashboard {
       };
       
     } catch (error) {
-      throw new Error(`Dashboard generation failed: ${error.message}`);
+      throw new Error('Dashboard generation failed: ' + error.message);
     }
   }
 
@@ -67,7 +68,7 @@ class StaticDashboard {
           lastUpdated: data.metadata?.generated_at || new Date().toISOString()
         };
       } catch (error) {
-        console.warn(`⚠️  Failed to load data for site ${siteConfig.siteId}: ${error.message}`);
+        console.warn('⚠️  Failed to load data for site ' + siteConfig.siteId + ': ' + error.message);
         siteData[siteConfig.siteId] = {
           config: siteConfig,
           data: null,
@@ -86,7 +87,7 @@ class StaticDashboard {
    * @returns {Promise<Object>} Parsed YAML data
    */
   async loadSiteData(siteId) {
-    const yamlPath = path.join(this.dataDir, `${siteId}.yaml`);
+    const yamlPath = path.join(this.dataDir, siteId + '.yaml');
     
     try {
       const yamlContent = await fs.readFile(yamlPath, 'utf8');
@@ -100,9 +101,9 @@ class StaticDashboard {
       
     } catch (error) {
       if (error.code === 'ENOENT') {
-        throw new Error(`Analytics data file not found: ${yamlPath}`);
+        throw new Error('Analytics data file not found: ' + yamlPath);
       }
-      throw new Error(`Failed to parse YAML data: ${error.message}`);
+      throw new Error('Failed to parse YAML data: ' + error.message);
     }
   }
 
@@ -115,7 +116,7 @@ class StaticDashboard {
     const html = this.generateIndexHTML(siteData);
     const indexPath = path.join(this.outputDir, 'index.html');
     await fs.writeFile(indexPath, html, 'utf8');
-    console.log(`✅ Generated index page: ${indexPath}`);
+    console.log('✅ Generated index page: ' + indexPath);
   }
 
   /**
@@ -127,9 +128,9 @@ class StaticDashboard {
     for (const [siteId, site] of Object.entries(siteData)) {
       if (site.data) {
         const html = this.generateSiteHTML(siteId, site);
-        const sitePath = path.join(this.outputDir, `${siteId}.html`);
+        const sitePath = path.join(this.outputDir, siteId + '.html');
         await fs.writeFile(sitePath, html, 'utf8');
-        console.log(`✅ Generated site page: ${sitePath}`);
+        console.log('✅ Generated site page: ' + sitePath);
       }
     }
   }
@@ -278,25 +279,46 @@ class StaticDashboard {
             <p class="subtitle">Analytics Overview</p>
         </header>
 
-        <div class="overview-cards">
-            <div class="card">
-                <h3>Total Pageviews</h3>
-                <div class="metric">${(summary.total_pageviews || 0).toLocaleString()}</div>
+        <div class="controls-section">
+            <div class="date-range-controls">
+                <label for="dateRange">Date Range:</label>
+                <select id="dateRange" onchange="filterByDateRange(this.value)">
+                    <option value="all">All Time</option>
+                    <option value="1d">Last 24 Hours</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                    <option value="1y">Last Year</option>
+                </select>
             </div>
-            <div class="card">
-                <h3>Unique Visitors</h3>
-                <div class="metric">${(summary.unique_visitors || 0).toLocaleString()}</div>
-            </div>
-            <div class="card">
-                <h3>Top Page</h3>
-                <div class="metric-small">${summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].path : 'N/A'}</div>
-                <div class="sub-metric">${summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].pageviews + ' views' : ''}</div>
+            <div class="export-controls">
+                <button onclick="exportData('summary')" class="export-btn">📊 Export Summary</button>
+                <button onclick="exportData('pages')" class="export-btn">📄 Export Pages</button>
+                <button onclick="exportData('referrers')" class="export-btn">🔗 Export Referrers</button>
+                <button onclick="exportData('timeseries')" class="export-btn">📈 Export Time Series</button>
             </div>
         </div>
 
-        ${this.generateTopPagesSection(data.top_pages)}
-        ${this.generateReferrersSection(data.referrers)}
-        ${this.generateTimeSeriesSection(data.time_series)}
+        <div class="overview-cards">
+            <div class="card">
+                <h3>Total Pageviews</h3>
+                <div class="metric" id="totalPageviews">${(summary.total_pageviews || 0).toLocaleString()}</div>
+            </div>
+            <div class="card">
+                <h3>Unique Visitors</h3>
+                <div class="metric" id="uniqueVisitors">${(summary.unique_visitors || 0).toLocaleString()}</div>
+            </div>
+            <div class="card">
+                <h3>Top Page</h3>
+                <div class="metric-small" id="topPage">${summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].path : 'N/A'}</div>
+                <div class="sub-metric" id="topPageViews">${summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].pageviews + ' views' : ''}</div>
+            </div>
+        </div>
+
+        <div id="contentSections">
+            ${this.generateTopPagesSection(data.top_pages)}
+            ${this.generateReferrersSection(data.referrers)}
+            ${this.generateTimeSeriesSection(data.time_series)}
+        </div>
 
         <footer class="footer">
             <p>Last updated: ${new Date(site.lastUpdated).toLocaleString()}</p>
@@ -304,6 +326,11 @@ class StaticDashboard {
         </footer>
     </div>
 
+    <script>
+        // Embed full site data for JavaScript processing
+        window.siteData = ${JSON.stringify(data)};
+        window.siteId = '${siteId}';
+    </script>
     <script src="dashboard.js"></script>
 </body>
 </html>`;
@@ -495,6 +522,73 @@ body {
 
 .breadcrumb a:hover {
     text-decoration: underline;
+}
+
+/* Controls section */
+.controls-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.date-range-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.date-range-controls label {
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.date-range-controls select {
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: white;
+    color: #2d3748;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.date-range-controls select:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+.export-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.export-btn {
+    padding: 8px 16px;
+    background: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.export-btn:hover {
+    background: #3182ce;
+}
+
+.export-btn:active {
+    transform: translateY(1px);
 }
 
 /* Cards */
@@ -745,6 +839,19 @@ body {
         font-size: 2rem;
     }
     
+    .controls-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .date-range-controls {
+        justify-content: center;
+    }
+    
+    .export-controls {
+        justify-content: center;
+    }
+    
     .overview-cards {
         grid-template-columns: 1fr;
         gap: 16px;
@@ -772,6 +879,19 @@ body {
 @media (max-width: 480px) {
     .header h1 {
         font-size: 1.8rem;
+    }
+    
+    .controls-section {
+        padding: 16px;
+    }
+    
+    .export-controls {
+        flex-direction: column;
+    }
+    
+    .export-btn {
+        width: 100%;
+        margin-bottom: 8px;
     }
     
     .metric {
@@ -806,6 +926,356 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add click handlers for interactive elements
     initializeInteractions();
 });
+
+/**
+ * Filter data by date range and update display
+ * @param {string} range - Date range selection
+ */
+function filterByDateRange(range) {
+    if (!window.siteData) return;
+    
+    console.log('Filtering data by range:', range);
+    
+    const filteredData = filterDataByDateRange(window.siteData, range);
+    updateDisplayWithFilteredData(filteredData);
+    
+    // Update chart if available
+    if (filteredData.time_series && filteredData.time_series.daily) {
+        window.chartData = filteredData.time_series.daily.slice(-30);
+        initializeChart();
+    }
+}
+
+/**
+ * Filter analytics data by date range (client-side implementation)
+ * @param {Object} data - Analytics data
+ * @param {string} range - Date range ('1d', '7d', '30d', '1y', 'all')
+ * @returns {Object} Filtered data
+ */
+function filterDataByDateRange(data, range = 'all') {
+    if (!data || range === 'all') {
+        return data;
+    }
+
+    const now = new Date();
+    let startDate;
+
+    switch (range) {
+        case '1d':
+            startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            break;
+        case '7d':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case '30d':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+        case '1y':
+            startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+            break;
+        default:
+            return data;
+    }
+
+    const filteredData = JSON.parse(JSON.stringify(data)); // Deep clone
+
+    // Filter time series data
+    if (data.time_series && data.time_series.daily) {
+        filteredData.time_series.daily = data.time_series.daily.filter(entry => {
+            const entryDate = new Date(entry.date);
+            return entryDate >= startDate && entryDate <= now;
+        });
+
+        // Recalculate summary statistics
+        const dailyData = filteredData.time_series.daily;
+        if (dailyData.length > 0) {
+            filteredData.summary = {
+                ...filteredData.summary,
+                total_pageviews: dailyData.reduce((sum, day) => sum + (day.pageviews || 0), 0),
+                unique_visitors: Math.max(...dailyData.map(day => day.unique_visitors || 0), 0),
+                date_range: range
+            };
+        }
+    }
+
+    return filteredData;
+}
+
+/**
+ * Update display with filtered data
+ * @param {Object} data - Filtered analytics data
+ */
+function updateDisplayWithFilteredData(data) {
+    const summary = data.summary || {};
+    
+    // Update summary cards
+    const totalPageviews = document.getElementById('totalPageviews');
+    const uniqueVisitors = document.getElementById('uniqueVisitors');
+    
+    if (totalPageviews) {
+        totalPageviews.textContent = (summary.total_pageviews || 0).toLocaleString();
+    }
+    
+    if (uniqueVisitors) {
+        uniqueVisitors.textContent = (summary.unique_visitors || 0).toLocaleString();
+    }
+    
+    // Update content sections
+    const contentSections = document.getElementById('contentSections');
+    if (contentSections) {
+        contentSections.innerHTML = 
+            generateTopPagesSection(data.top_pages) +
+            generateReferrersSection(data.referrers) +
+            generateTimeSeriesSection(data.time_series);
+    }
+}
+
+/**
+ * Export data in CSV format
+ * @param {string} type - Export type ('summary', 'pages', 'referrers', 'timeseries')
+ */
+function exportData(type) {
+    if (!window.siteData) {
+        alert('No data available for export');
+        return;
+    }
+    
+    try {
+        const currentRange = document.getElementById('dateRange').value;
+        const filteredData = filterDataByDateRange(window.siteData, currentRange);
+        const csv = generateCSVExport(filteredData, type);
+        
+        // Create and download file
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', window.siteId + '-' + type + '-' + currentRange + '.csv');
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Exported ' + type + ' data for range ' + currentRange);
+        
+    } catch (error) {
+        console.error('Export failed:', error);
+        alert('Export failed: ' + error.message);
+    }
+}
+
+/**
+ * Generate CSV export for analytics data (client-side implementation)
+ * @param {Object} data - Analytics data
+ * @param {string} type - Export type
+ * @returns {string} CSV content
+ */
+function generateCSVExport(data, type) {
+    switch (type) {
+        case 'summary':
+            return generateSummaryCSV(data);
+        case 'pages':
+            return generatePagesCSV(data.top_pages);
+        case 'referrers':
+            return generateReferrersCSV(data.referrers);
+        case 'timeseries':
+            return generateTimeSeriesCSV(data.time_series);
+        default:
+            throw new Error('Unknown export type: ' + type);
+    }
+}
+
+/**
+ * Generate summary CSV (client-side)
+ */
+function generateSummaryCSV(data) {
+    const summary = data.summary || {};
+    const metadata = data.metadata || {};
+    
+    const rows = [
+        ['Metric', 'Value'],
+        ['Site', metadata.site || 'Unknown'],
+        ['Generated At', metadata.generated_at || 'Unknown'],
+        ['Total Pageviews', summary.total_pageviews || 0],
+        ['Unique Visitors', summary.unique_visitors || 0],
+        ['Top Page', summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].path : 'N/A'],
+        ['Date Range', summary.date_range || 'all']
+    ];
+
+    return arrayToCSV(rows);
+}
+
+/**
+ * Generate pages CSV (client-side)
+ */
+function generatePagesCSV(pages) {
+    if (!pages || !Array.isArray(pages)) {
+        return 'Path,Pageviews,Unique Visitors,Percentage\n';
+    }
+
+    const rows = [['Path', 'Pageviews', 'Unique Visitors', 'Percentage']];
+    
+    pages.forEach(page => {
+        rows.push([
+            page.path || '',
+            page.pageviews || 0,
+            page.unique_visitors || 0,
+            (page.percentage || 0).toFixed(2) + '%'
+        ]);
+    });
+
+    return arrayToCSV(rows);
+}
+
+/**
+ * Generate referrers CSV (client-side)
+ */
+function generateReferrersCSV(referrers) {
+    if (!referrers || !referrers.by_domain || !Array.isArray(referrers.by_domain)) {
+        return 'Domain,Visits,Unique Visitors,Percentage\n';
+    }
+
+    const rows = [['Domain', 'Visits', 'Unique Visitors', 'Percentage']];
+    
+    referrers.by_domain.forEach(referrer => {
+        rows.push([
+            referrer.domain || '',
+            referrer.visits || 0,
+            referrer.unique_visitors || 0,
+            (referrer.percentage || 0).toFixed(2) + '%'
+        ]);
+    });
+
+    return arrayToCSV(rows);
+}
+
+/**
+ * Generate time series CSV (client-side)
+ */
+function generateTimeSeriesCSV(timeSeries) {
+    if (!timeSeries || !timeSeries.daily || !Array.isArray(timeSeries.daily)) {
+        return 'Date,Pageviews,Unique Visitors\n';
+    }
+
+    const rows = [['Date', 'Pageviews', 'Unique Visitors']];
+    
+    timeSeries.daily.forEach(entry => {
+        rows.push([
+            entry.date || '',
+            entry.pageviews || 0,
+            entry.unique_visitors || 0
+        ]);
+    });
+
+    return arrayToCSV(rows);
+}
+
+/**
+ * Convert array to CSV format (client-side)
+ */
+function arrayToCSV(rows) {
+    return rows.map(row => 
+        row.map(cell => {
+            const cellStr = String(cell);
+            if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+                return '"' + cellStr.replace(/"/g, '""') + '"';
+            }
+            return cellStr;
+        }).join(',')
+    ).join('\n');
+}
+
+/**
+ * Generate HTML sections (client-side implementations for dynamic updates)
+ */
+function generateTopPagesSection(topPages) {
+    if (!topPages || !Array.isArray(topPages) || topPages.length === 0) {
+        return '<div class="section"><h2>🔥 Top Pages</h2><p>No page data available</p></div>';
+    }
+
+    var tableRows = topPages.slice(0, 10).map(function(page) {
+        return '<tr>' +
+            '<td class="page-path">' + escapeHtml(page.path) + '</td>' +
+            '<td>' + page.pageviews.toLocaleString() + '</td>' +
+            '<td>' + page.unique_visitors.toLocaleString() + '</td>' +
+            '<td>' + page.percentage.toFixed(1) + '%</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="section">' +
+        '<h2>🔥 Top Pages</h2>' +
+        '<div class="table-container">' +
+            '<table class="data-table">' +
+                '<thead>' +
+                    '<tr>' +
+                        '<th>Page</th>' +
+                        '<th>Pageviews</th>' +
+                        '<th>Unique Visitors</th>' +
+                        '<th>Share</th>' +
+                    '</tr>' +
+                '</thead>' +
+                '<tbody>' + tableRows + '</tbody>' +
+            '</table>' +
+        '</div>' +
+    '</div>';
+}
+
+function generateReferrersSection(referrers) {
+    if (!referrers || !referrers.by_domain || !Array.isArray(referrers.by_domain) || referrers.by_domain.length === 0) {
+        return '<div class="section"><h2>🔗 Top Referrers</h2><p>No referrer data available</p></div>';
+    }
+
+    var tableRows = referrers.by_domain.slice(0, 10).map(function(referrer) {
+        return '<tr>' +
+            '<td class="referrer-domain">' + escapeHtml(referrer.domain) + '</td>' +
+            '<td>' + referrer.visits.toLocaleString() + '</td>' +
+            '<td>' + referrer.unique_visitors.toLocaleString() + '</td>' +
+            '<td>' + referrer.percentage.toFixed(1) + '%</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="section">' +
+        '<h2>🔗 Top Referrers</h2>' +
+        '<div class="table-container">' +
+            '<table class="data-table">' +
+                '<thead>' +
+                    '<tr>' +
+                        '<th>Domain</th>' +
+                        '<th>Visits</th>' +
+                        '<th>Unique Visitors</th>' +
+                        '<th>Share</th>' +
+                    '</tr>' +
+                '</thead>' +
+                '<tbody>' + tableRows + '</tbody>' +
+            '</table>' +
+        '</div>' +
+    '</div>';
+}
+
+function generateTimeSeriesSection(timeSeries) {
+    if (!timeSeries || !timeSeries.daily || !Array.isArray(timeSeries.daily) || timeSeries.daily.length === 0) {
+        return '<div class="section"><h2>📊 Traffic Trends</h2><p>No time series data available</p></div>';
+    }
+
+    return '<div class="section">' +
+        '<h2>📊 Traffic Trends</h2>' +
+        '<div class="chart-container">' +
+            '<canvas id="trafficChart" width="800" height="300"></canvas>' +
+        '</div>' +
+        '<div class="chart-legend">' +
+            '<span class="legend-item">' +
+                '<span class="legend-color pageviews"></span>' +
+                'Pageviews' +
+            '</span>' +
+            '<span class="legend-item">' +
+                '<span class="legend-color visitors"></span>' +
+                'Unique Visitors' +
+            '</span>' +
+        '</div>' +
+    '</div>';
+}
 
 /**
  * Initialize traffic chart
@@ -980,6 +1450,219 @@ function escapeHtml(text) {
     } catch (error) {
       return [];
     }
+  }
+
+  /**
+   * Filter analytics data by date range
+   * @param {Object} data - Analytics data
+   * @param {string} range - Date range ('1d', '7d', '30d', '1y', 'all')
+   * @returns {Object} Filtered data
+   */
+  filterDataByDateRange(data, range = 'all') {
+    if (!data || range === 'all') {
+      return data;
+    }
+
+    const now = new Date();
+    let startDate;
+
+    switch (range) {
+      case '1d':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '1y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        return data;
+    }
+
+    const filteredData = { ...data };
+
+    // Filter time series data
+    if (data.time_series) {
+      filteredData.time_series = {};
+      
+      if (data.time_series.daily) {
+        filteredData.time_series.daily = data.time_series.daily.filter(entry => {
+          const entryDate = new Date(entry.date);
+          return entryDate >= startDate && entryDate <= now;
+        });
+      }
+
+      if (data.time_series.hourly) {
+        filteredData.time_series.hourly = data.time_series.hourly.filter(entry => {
+          const entryDate = new Date(entry.timestamp);
+          return entryDate >= startDate && entryDate <= now;
+        });
+      }
+    }
+
+    // Recalculate summary statistics for filtered data
+    if (filteredData.time_series && filteredData.time_series.daily) {
+      const dailyData = filteredData.time_series.daily;
+      filteredData.summary = {
+        ...filteredData.summary,
+        total_pageviews: dailyData.reduce((sum, day) => sum + (day.pageviews || 0), 0),
+        unique_visitors: Math.max(...dailyData.map(day => day.unique_visitors || 0), 0),
+        date_range: range,
+        filtered_period: {
+          start: startDate.toISOString(),
+          end: now.toISOString()
+        }
+      };
+    }
+
+    return filteredData;
+  }
+
+  /**
+   * Generate CSV export for analytics data
+   * @param {Object} data - Analytics data
+   * @param {string} type - Export type ('summary', 'pages', 'referrers', 'timeseries')
+   * @returns {string} CSV content
+   */
+  generateCSVExport(data, type = 'summary') {
+    if (!data) {
+      throw new Error('No data available for export');
+    }
+
+    switch (type) {
+      case 'summary':
+        return this.generateSummaryCSV(data);
+      case 'pages':
+        return this.generatePagesCSV(data.top_pages);
+      case 'referrers':
+        return this.generateReferrersCSV(data.referrers);
+      case 'timeseries':
+        return this.generateTimeSeriesCSV(data.time_series);
+      default:
+        throw new Error('Unknown export type: ' + type);
+    }
+  }
+
+  /**
+   * Generate summary CSV
+   * @param {Object} data - Analytics data
+   * @returns {string} CSV content
+   */
+  generateSummaryCSV(data) {
+    const summary = data.summary || {};
+    const metadata = data.metadata || {};
+    
+    const rows = [
+      ['Metric', 'Value'],
+      ['Site', metadata.site || 'Unknown'],
+      ['Generated At', metadata.generated_at || 'Unknown'],
+      ['Total Pageviews', summary.total_pageviews || 0],
+      ['Unique Visitors', summary.unique_visitors || 0],
+      ['Top Page', summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].path : 'N/A'],
+      ['Top Referrer', summary.top_referrer || 'N/A'],
+      ['Date Range', summary.date_range || 'all']
+    ];
+
+    return this.arrayToCSV(rows);
+  }
+
+  /**
+   * Generate pages CSV
+   * @param {Array} pages - Top pages data
+   * @returns {string} CSV content
+   */
+  generatePagesCSV(pages) {
+    if (!pages || !Array.isArray(pages)) {
+      return 'Path,Pageviews,Unique Visitors,Percentage\n';
+    }
+
+    const rows = [
+      ['Path', 'Pageviews', 'Unique Visitors', 'Percentage']
+    ];
+
+    pages.forEach(page => {
+      rows.push([
+        page.path || '',
+        page.pageviews || 0,
+        page.unique_visitors || 0,
+        (page.percentage || 0).toFixed(2) + '%'
+      ]);
+    });
+
+    return this.arrayToCSV(rows);
+  }
+
+  /**
+   * Generate referrers CSV
+   * @param {Object} referrers - Referrers data
+   * @returns {string} CSV content
+   */
+  generateReferrersCSV(referrers) {
+    if (!referrers || !referrers.by_domain || !Array.isArray(referrers.by_domain)) {
+      return 'Domain,Visits,Unique Visitors,Percentage\n';
+    }
+
+    const rows = [
+      ['Domain', 'Visits', 'Unique Visitors', 'Percentage']
+    ];
+
+    referrers.by_domain.forEach(referrer => {
+      rows.push([
+        referrer.domain || '',
+        referrer.visits || 0,
+        referrer.unique_visitors || 0,
+        (referrer.percentage || 0).toFixed(2) + '%'
+      ]);
+    });
+
+    return this.arrayToCSV(rows);
+  }
+
+  /**
+   * Generate time series CSV
+   * @param {Object} timeSeries - Time series data
+   * @returns {string} CSV content
+   */
+  generateTimeSeriesCSV(timeSeries) {
+    if (!timeSeries || !timeSeries.daily || !Array.isArray(timeSeries.daily)) {
+      return 'Date,Pageviews,Unique Visitors\n';
+    }
+
+    const rows = [
+      ['Date', 'Pageviews', 'Unique Visitors']
+    ];
+
+    timeSeries.daily.forEach(entry => {
+      rows.push([
+        entry.date || '',
+        entry.pageviews || 0,
+        entry.unique_visitors || 0
+      ]);
+    });
+
+    return this.arrayToCSV(rows);
+  }
+
+  /**
+   * Convert array to CSV format
+   * @param {Array} rows - Array of rows
+   * @returns {string} CSV content
+   */
+  arrayToCSV(rows) {
+    return rows.map(row => 
+      row.map(cell => {
+        // Escape quotes and wrap in quotes if necessary
+        const cellStr = String(cell);
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+          return '"' + cellStr.replace(/"/g, '""') + '"';
+        }
+        return cellStr;
+      }).join(',')
+    ).join('\n');
   }
 
   /**
