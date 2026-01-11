@@ -9,6 +9,8 @@ const { DependencyChecker } = require('./src/utils/dependency-checker');
 const { NginxConfigGenerator } = require('./src/generators/nginx-config');
 const { NginxConfigValidator } = require('./src/validators/nginx-validator');
 const { SystemdServiceGenerator } = require('./src/generators/systemd-service');
+const { AuthManager } = require('./src/utils/auth-manager');
+const { SetupCoordinator } = require('./src/setup/setup-coordinator');
 
 async function verifyCLIComponents() {
   console.log('🔍 Verifying CLI Package Components');
@@ -78,11 +80,30 @@ async function verifyCLIComponents() {
       throw new Error('Systemd service generation failed');
     }
     
+    // Test AuthManager
+    console.log('🔐 Testing AuthManager...');
+    const authManager = new AuthManager();
+    const testPassword = 'SecureKey789!';
+    const hash = await authManager.hashPassword(testPassword);
+    const isValid = await authManager.verifyPassword(testPassword, hash);
+    if (!isValid) {
+      throw new Error('AuthManager password verification failed');
+    }
+    console.log('   ✅ AuthManager works');
+    
+    // Test SetupCoordinator
+    console.log('🚀 Testing SetupCoordinator...');
+    const coordinator = new SetupCoordinator();
+    // Just test instantiation since full setup requires file system operations
+    console.log('   ✅ SetupCoordinator instantiates correctly');
+    
     console.log('\n🎉 All CLI Components Verified Successfully');
     console.log('   - DependencyChecker ✅');
     console.log('   - NginxConfigGenerator ✅');
     console.log('   - NginxConfigValidator ✅');
     console.log('   - SystemdServiceGenerator ✅');
+    console.log('   - AuthManager ✅');
+    console.log('   - SetupCoordinator ✅');
     
     return true;
     

@@ -5,7 +5,6 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const chalk = require('chalk');
 
 class SystemdServiceGenerator {
   constructor(options = {}) {
@@ -13,6 +12,7 @@ class SystemdServiceGenerator {
     this.serviceName = options.serviceName || 'analytics-system';
     this.user = options.user || 'analytics';
     this.group = options.group || 'analytics';
+    this.backupDir = options.backupDir || '/tmp/systemd-backups';
   }
 
   /**
@@ -64,6 +64,69 @@ KillSignal=SIGTERM
 
 [Install]
 WantedBy=multi-user.target`;
+  }
+
+  /**
+   * Create backup of existing service file
+   * @param {string} servicePath - Path to service file
+   * @returns {Promise<string|null>} Path to backup file or null if no backup needed
+   */
+  async createServiceBackup(servicePath) {
+    try {
+      // Check if service file exists
+      await fs.access(servicePath);
+      
+      // Create backup directory
+      await fs.mkdir(this.backupDir, { recursive: true });
+      
+      // Generate backup filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupFilename = `${this.serviceName}.service.backup.${timestamp}`;
+      const backupPath = path.join(this.backupDir, backupFilename);
+      
+      // Copy existing service file to backup
+      await fs.copyFile(servicePath, backupPath);
+      
+      console.log(`✅ Service file backed up to: ${backupPath}`);
+      return backupPath;
+      
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // Service file doesn't exist, no backup needed
+        return null;
+      }
+      throw new Error(`Failed to create service backup: ${error.message}`);
+    }
+  }
+
+  /**
+   * Restore service file from backup
+   * @param {string} backupPath - Path to backup file
+   * @param {string} servicePath - Path to service file
+   * @returns {Promise<void>}
+   */
+  async restoreServiceFromBackup(backupPath, servicePath) {
+    try {
+      if (!backupPath) {
+        // No backup exists, remove the service file
+        try {
+          await fs.unlink(servicePath);
+          console.log(`✅ Service file removed: ${servicePath}`);
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            throw error;
+          }
+        }
+        return;
+      }
+      
+      // Restore from backup
+      await fs.copyFile(backupPath, servicePath);
+      console.log(`✅ Service file restored from backup: ${backupPath}`);
+      
+    } catch (error) {
+      throw new Error(`Failed to restore service from backup: ${error.message}`);
+    }
   }
 
   /**
@@ -128,23 +191,45 @@ echo "Directories and permissions set up successfully"`;
   }
 
   /**
-   * Write systemd service file
+   * Write systemd service file with rollback support
    * @param {Object} config - Service configuration
-   * @returns {Promise<string>} Path to service file
+   * @returns {Promise<Object>} Operation result with rollback info
    */
-  async writeServiceFile(config) {
-    const serviceContent = this.generateServiceFile(config);
+  async writeServiceFileWithRollback(config) {
     const servicePath = path.join(this.systemdDir, `${this.serviceName}.service`);
+    let backupPath = null;
     
     try {
-      await fs.writeFile(servicePath, serviceContent, 'utf8');
-      await fs.chmod(servicePath, 0o644);
+      // Create backup of existing service file
+      backupPath = await this.createServiceBackup(servicePath);
       
-      console.log(chalk.green(`✅ Service file written to: ${servicePath}`));
+      // Generate new service content
+      const serviceContent = this.generateServiceFile(config);
       
-      return servicePath;
+      // Write new service file with secure permissions
+      await fs.writeFile(servicePath, serviceContent, { mode: 0o644 });
+      
+      console.log(`✅ Service file written to: ${servicePath}`);
+      
+      return {
+        success: true,
+        servicePath,
+        backupPath,
+        rollback: async () => {
+          await this.restoreServiceFromBackup(backupPath, servicePath);
+        }
+      };
       
     } catch (error) {
+      // If writing failed and we have a backup, restore it
+      if (backupPath) {
+        try {
+          await this.restoreServiceFromBackup(backupPath, servicePath);
+        } catch (restoreError) {
+          console.error(`Failed to restore backup: ${restoreError.message}`);
+        }
+      }
+      
       throw new Error(`Failed to write service file: ${error.message}`);
     }
   }
@@ -161,7 +246,7 @@ echo "Directories and permissions set up successfully"`;
       await fs.writeFile(scriptPath, scriptContent, 'utf8');
       await fs.chmod(scriptPath, 0o755);
       
-      console.log(chalk.green(`✅ User creation script written to: ${scriptPath}`));
+      console.log(`✅ User creation script written to: ${scriptPath}`);
       
       return scriptPath;
       
@@ -183,7 +268,7 @@ echo "Directories and permissions set up successfully"`;
       await fs.writeFile(scriptPath, scriptContent, 'utf8');
       await fs.chmod(scriptPath, 0o755);
       
-      console.log(chalk.green(`✅ Directory setup script written to: ${scriptPath}`));
+      console.log(`✅ Directory setup script written to: ${scriptPath}`);
       
       return scriptPath;
       
@@ -193,33 +278,66 @@ echo "Directories and permissions set up successfully"`;
   }
 
   /**
-   * Generate complete systemd service setup
+   * Generate complete systemd service setup with rollback support
    * @param {Object} config - Service configuration
-   * @returns {Promise<Object>} Generated file paths
+   * @returns {Promise<Object>} Generated file paths and rollback function
    */
-  async generateService(config) {
+  async generateServiceWithRollback(config) {
+    const operations = [];
+    
     try {
-      // Write service file
-      const servicePath = await this.writeServiceFile(config);
+      // Write service file with rollback support
+      const serviceResult = await this.writeServiceFileWithRollback(config);
+      operations.push(serviceResult);
       
       // Write setup scripts
       const userScriptPath = await this.writeUserCreationScript();
       const dirScriptPath = await this.writeDirectorySetupScript(config);
       
-      console.log(chalk.yellow('\n📋 Manual setup required:'));
-      console.log(chalk.white(`1. Run user creation script: sudo ${userScriptPath}`));
-      console.log(chalk.white(`2. Run directory setup script: sudo ${dirScriptPath}`));
-      console.log(chalk.white('3. Reload systemd: sudo systemctl daemon-reload'));
-      console.log(chalk.white(`4. Enable service: sudo systemctl enable ${this.serviceName}`));
-      console.log(chalk.white(`5. Start service: sudo systemctl start ${this.serviceName}`));
+      console.log('\n📋 Manual setup required:');
+      console.log(`1. Run user creation script: sudo ${userScriptPath}`);
+      console.log(`2. Run directory setup script: sudo ${dirScriptPath}`);
+      console.log('3. Reload systemd: sudo systemctl daemon-reload');
+      console.log(`4. Enable service: sudo systemctl enable ${this.serviceName}`);
+      console.log(`5. Start service: sudo systemctl start ${this.serviceName}`);
       
       return {
-        servicePath,
+        success: true,
+        servicePath: serviceResult.servicePath,
         userScriptPath,
-        dirScriptPath
+        dirScriptPath,
+        backupPath: serviceResult.backupPath,
+        rollback: async () => {
+          console.log('🔄 Rolling back systemd service setup...');
+          
+          // Rollback service file
+          await serviceResult.rollback();
+          
+          // Clean up script files
+          try {
+            await fs.unlink(userScriptPath);
+            await fs.unlink(dirScriptPath);
+            console.log('✅ Setup scripts cleaned up');
+          } catch (error) {
+            console.warn(`Warning: Could not clean up scripts: ${error.message}`);
+          }
+          
+          console.log('✅ Systemd service setup rolled back');
+        }
       };
       
     } catch (error) {
+      // Rollback any completed operations
+      for (const operation of operations) {
+        if (operation.rollback) {
+          try {
+            await operation.rollback();
+          } catch (rollbackError) {
+            console.error(`Rollback failed: ${rollbackError.message}`);
+          }
+        }
+      }
+      
       throw new Error(`Failed to generate systemd service: ${error.message}`);
     }
   }
@@ -230,29 +348,29 @@ echo "Directories and permissions set up successfully"`;
    */
   getServiceInstructions() {
     return `
-${chalk.blue.bold('📋 systemd Service Management')}
+📋 systemd Service Management
 
-${chalk.yellow('Service Control:')}
+Service Control:
   sudo systemctl start ${this.serviceName}     # Start the service
   sudo systemctl stop ${this.serviceName}      # Stop the service
   sudo systemctl restart ${this.serviceName}   # Restart the service
   sudo systemctl reload ${this.serviceName}    # Reload configuration
   sudo systemctl status ${this.serviceName}    # Check service status
 
-${chalk.yellow('Service Configuration:')}
+Service Configuration:
   sudo systemctl enable ${this.serviceName}    # Enable auto-start on boot
   sudo systemctl disable ${this.serviceName}   # Disable auto-start on boot
 
-${chalk.yellow('Logs and Monitoring:')}
+Logs and Monitoring:
   journalctl -u ${this.serviceName}            # View service logs
   journalctl -u ${this.serviceName} -f         # Follow service logs
   journalctl -u ${this.serviceName} --since today  # Today's logs
 
-${chalk.yellow('Configuration Reload:')}
+Configuration Reload:
   sudo systemctl daemon-reload                 # Reload systemd configuration
   sudo systemctl reload ${this.serviceName}    # Reload service configuration
 
-${chalk.gray('Note: The service runs as user "' + this.user + '" for security.')}
+Note: The service runs as user "${this.user}" for security.
 `;
   }
 
@@ -270,8 +388,8 @@ ${chalk.gray('Note: The service runs as user "' + this.user + '" for security.')
       await execAsync(`systemd-analyze verify ${servicePath}`);
       return true;
     } catch (error) {
-      console.error(chalk.red('❌ Service file validation failed:'));
-      console.error(chalk.red(error.message));
+      console.error('❌ Service file validation failed:');
+      console.error(error.message);
       return false;
     }
   }
