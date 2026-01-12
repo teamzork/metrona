@@ -15,3 +15,20 @@ global.console = {
   // warn: jest.fn(),
   // error: jest.fn(),
 };
+
+// Global test cleanup to prevent hanging
+afterEach(() => {
+  // Clear all timers
+  jest.clearAllTimers();
+  
+  // Clear all mocks
+  jest.clearAllMocks();
+});
+
+// Global test teardown
+afterAll(() => {
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
+});

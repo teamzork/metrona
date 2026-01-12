@@ -3,7 +3,9 @@
  */
 
 const { StaticDashboard } = require('./static-dashboard');
+const { ServerDashboard } = require('./server-dashboard');
 
 module.exports = {
-  StaticDashboard
+  StaticDashboard,
+  ServerDashboard
 };

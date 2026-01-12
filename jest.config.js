@@ -34,6 +34,24 @@ module.exports = {
   // Timeout for tests (important for property-based tests)
   testTimeout: 30000,
   
+  // Force exit to prevent hanging
+  forceExit: true,
+  
+  // Detect open handles that might cause hanging
+  detectOpenHandles: true,
+  
   // Verbose output
-  verbose: true
+  verbose: true,
+  
+  // Max workers to prevent resource exhaustion
+  maxWorkers: 2,
+  
+  // Bail after first test failure to prevent hanging on subsequent tests
+  bail: false,
+  
+  // Clear mocks between tests
+  clearMocks: true,
+  
+  // Reset modules between tests
+  resetModules: true
 };
