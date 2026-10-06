@@ -19,12 +19,15 @@ class LogFileReader {
    * @param {number} [options.lastPosition=0] - Last known position in the main log file
    * @param {number} [options.maxMemoryMB=64] - Maximum memory usage in MB
    * @param {string[]} [options.rotationExtensions=['.1', '.2', '.3', '.gz']] - Extensions for rotated files
+   * @param {string} [options.rotationNaming='suffix'] - 'suffix' (logrotate: access.log.1, .gz) or
+   *   'caddy' (Caddy's roller: access-2026-10-05T04-00-00.000.log[.gz] beside access.log)
    */
   constructor(logPath, options = {}) {
     this.logPath = logPath;
     this.lastPosition = options.lastPosition || 0;
     this.maxMemoryMB = options.maxMemoryMB || 64;
     this.rotationExtensions = options.rotationExtensions || ['.1', '.2', '.3', '.gz'];
+    this.rotationNaming = options.rotationNaming || 'suffix';
     
     // Track current position for incremental processing
     this.currentPosition = this.lastPosition;
@@ -54,6 +57,12 @@ class LogFileReader {
         });
       }
       
+      if (this.rotationNaming === 'caddy') {
+        logFiles.push(...await this.discoverCaddyRolledFiles(baseDir, baseName));
+        logFiles.sort((a, b) => b.rotationIndex - a.rotationIndex);
+        return logFiles;
+      }
+
       // Discover rotated log files
       for (let i = 0; i < this.rotationExtensions.length; i++) {
         const ext = this.rotationExtensions[i];
@@ -76,6 +85,29 @@ class LogFileReader {
     } catch (error) {
       throw new Error(`Failed to discover log files: ${error.message}`);
     }
+  }
+
+  /**
+   * Files Caddy's log roller left beside the live log: `<stem>-<UTC timestamp><ext>`, optionally
+   * gzipped. Named so that sorting by name is chronological.
+   * @private
+   */
+  async discoverCaddyRolledFiles(baseDir, baseName) {
+    const ext = path.extname(baseName);
+    const stem = baseName.slice(0, baseName.length - ext.length);
+    const escape = (v) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`^${escape(stem)}-\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}\\.\\d{3}${escape(ext)}(\\.gz)?$`);
+    let names;
+    try {
+      names = await fs.promises.readdir(baseDir);
+    } catch {
+      return [];
+    }
+    const rolled = names.filter((n) => pattern.test(n)).sort();
+    return Promise.all(rolled.map(async (name, i) => {
+      const filePath = path.join(baseDir, name);
+      return { path: filePath, isCompressed: name.endsWith('.gz'), rotationIndex: rolled.length - i, size: await this.getFileSize(filePath) };
+    }));
   }
 
   /**

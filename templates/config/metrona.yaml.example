@@ -1,0 +1,34 @@
+# Metrona configuration, read by both the scheduler (packages/scheduler/src/daemon.js -c <file>)
+# and the dashboard (packages/dashboard/src/start.js <file>). Field names are camelCase.
+version: "1.0"
+
+sites:
+  # One entry per hostname, each with its own Caddy access log (see templates/caddy/).
+  - siteId: hairdesign
+    siteName: Hair design (public site)
+    domain: hairdesign.example.com
+    aliases: [dev.example.com]          # other names of the site: never counted as referrers
+    logPath: /var/log/caddy/hairdesign.log
+    format: caddy                       # caddy (JSON) or nginx (combined)
+    schedule: hourly                    # hourly, daily, or a cron expression
+    timezone: America/Los_Angeles       # label only: days are UTC days for now
+    parserOptions:
+      clientIpHeader: Cf-Connecting-Ip  # only for hosts that are always behind Cloudflare
+      collapsePrefixes: ["/r/"]         # private tokenised links: counted as /r/:token
+      topContentLimit: 20
+      referrerLimit: 10
+
+  - siteId: studio
+    siteName: Studio
+    domain: studio.example.com
+    logPath: /var/log/caddy/studio.log
+    format: caddy
+    schedule: hourly
+
+dashboard:
+  host: 127.0.0.1                       # loopback; Caddy serves it
+  port: 3001
+  dataDir: /var/lib/metrona/dashboard   # must match the scheduler's --dashboard-data
+  passwordHash: ""                      # empty: no own login, protect it in Caddy instead
+  httpsOnly: true
+  frameAncestors: []                    # e.g. [https://studio.example.com] to allow embedding

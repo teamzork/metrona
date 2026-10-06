@@ -7,7 +7,7 @@ A self-hosted, privacy-focused web analytics system that parses nginx access log
 - **Privacy-focused**: No third-party tracking, IP hashing for visitor privacy
 - **Lightweight**: Log parsing + static data generation approach
 - **Modular**: Separate packages for different concerns
-- **Server-agnostic**: Works with nginx (Caddy support planned)
+- **Server-agnostic**: Works with nginx (combined format) and Caddy (JSON access logs) — see `Docs/caddy.md`
 - **Framework-agnostic**: Components work in Next.js, Astro, Express, vanilla HTML
 
 ## Architecture

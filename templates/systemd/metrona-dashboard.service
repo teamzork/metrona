@@ -1,0 +1,24 @@
+[Unit]
+Description=Metrona dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=metrona
+Group=metrona
+WorkingDirectory=/opt/metrona
+ExecStart=/usr/bin/node packages/dashboard/src/start.js /etc/metrona/metrona.yaml
+Restart=on-failure
+RestartSec=5
+# SESSION_SECRET=<random> keeps dashboard sessions across restarts
+EnvironmentFile=/etc/metrona/metrona.env
+Environment=NODE_ENV=production TZ=UTC
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/metrona /var/lib/metrona/dashboard
+
+[Install]
+WantedBy=multi-user.target

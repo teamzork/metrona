@@ -17,6 +17,7 @@ function parseArgs() {
   const options = {
     configPath: './config/scheduler.yaml',
     outputDir: './analytics',
+    dashboardDataDir: null,
     timezone: 'UTC',
     logLevel: 'info',
     daemon: false
@@ -26,6 +27,10 @@ function parseArgs() {
     const arg = args[i];
     
     switch (arg) {
+      case '--dashboard-data':
+        options.dashboardDataDir = args[++i];
+        break;
+        
       case '--config':
       case '-c':
         options.configPath = args[++i];
@@ -77,6 +82,8 @@ Usage: analytics-scheduler [options]
 Options:
   -c, --config <path>     Configuration file path (default: ./config/scheduler.yaml)
   -o, --output <dir>      Output directory for analytics data (default: ./analytics)
+      --dashboard-data <dir>
+                          Where to write <siteId>.yaml for the dashboard (default: the output directory)
   -t, --timezone <tz>     Default timezone (default: UTC)
   -l, --log-level <level> Log level: error, warn, info, debug (default: info)
   -d, --daemon            Run as daemon (detach from terminal)
@@ -260,7 +267,8 @@ async function main() {
     const daemon = new SchedulerDaemon({
       configPath: path.resolve(options.configPath),
       outputDir: path.resolve(options.outputDir),
-      timezone: options.timezone
+      timezone: options.timezone,
+      executorOptions: options.dashboardDataDir ? { dashboardDataDir: path.resolve(options.dashboardDataDir) } : {}
     });
     
     // Setup event handlers

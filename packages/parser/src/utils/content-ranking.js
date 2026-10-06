@@ -17,6 +17,8 @@ class ContentRanker {
     this.maxResults = options.maxResults || 20;
     this.excludePatterns = options.excludePatterns || [];
     this.filterStaticAssets = options.filterStaticAssets !== false;
+    /** The site's own hostnames: a referrer from one of them is internal navigation, not a referral. */
+    this.ownDomains = (options.ownDomains || []).map(d => String(d).toLowerCase());
     
     // Default static asset extensions to exclude
     this.staticAssetExtensions = [
@@ -342,8 +344,8 @@ class ContentRanker {
     const domain = this.extractDomain(referrer);
     
     // Consider localhost and common development domains as internal
-    const internalDomains = ['localhost', '127.0.0.1', '0.0.0.0'];
-    return internalDomains.includes(domain);
+    const internalDomains = ['localhost', '127.0.0.1', '0.0.0.0', ...this.ownDomains];
+    return internalDomains.includes(String(domain).toLowerCase());
   }
 
   /**

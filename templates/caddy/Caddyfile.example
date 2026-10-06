@@ -1,0 +1,28 @@
+# Caddy pieces for Metrona. Caddy writes one JSON access log per site; Metrona's scheduler reads
+# them. Requires Caddy 2.8+ (log file `mode`).
+
+# 1. Per site: an access log file Metrona can read (group-readable for the metrona user).
+hairdesign.example.com {
+	log {
+		output file /var/log/caddy/hairdesign.log {
+			mode 0640
+			roll_size 50MiB
+			roll_keep_for 720h   # 30 days; Metrona keeps day totals after files are gone
+			roll_keep 30
+		}
+		format json
+	}
+	# Tokenised private links: don't write their URLs to disk at all (optional; Metrona also
+	# collapses them to /r/:token if they are logged).
+	# log_skip /r/*
+	reverse_proxy 127.0.0.1:3000
+}
+
+# 2. The dashboard on its own hostname. It binds to loopback; Caddy adds TLS and a login.
+#    Make a hash with: caddy hash-password
+metrona.example.com {
+	basic_auth {
+		admin $2a$14$REPLACE_WITH_CADDY_HASH_PASSWORD_OUTPUT
+	}
+	reverse_proxy 127.0.0.1:3001
+}

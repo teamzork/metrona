@@ -6,7 +6,11 @@
 const path = require('path');
 const fs = require('fs').promises;
 const { LogFileReader } = require('../../parser/src/utils/log-file-reader');
+const yaml = require('js-yaml');
 const { NginxLogParser } = require('../../parser/src/parsers/nginx');
+const { CaddyLogParser } = require('../../parser/src/parsers/caddy');
+const { isLikelyBot } = require('../../parser/src/utils/bot-filter');
+const { writeDashboardFile } = require('../../parser/src/utils/dashboard-export');
 const { AnalyticsCalculator } = require('../../parser/src/utils/analytics-calculator');
 const { YamlDatasetWriter } = require('../../parser/src/utils/yaml-writer');
 
@@ -19,11 +23,13 @@ class JobExecutor {
    * @param {string} [options.outputDir='./analytics'] - Output directory for YAML files
    * @param {string} [options.timezone='UTC'] - Timezone for analytics processing
    * @param {string} [options.salt=''] - Salt for visitor hashing
+   * @param {string} [options.dashboardDataDir] - Where the dashboard reads `<siteId>.yaml` (defaults to outputDir)
    */
   constructor(options = {}) {
     this.outputDir = options.outputDir || './analytics';
     this.timezone = options.timezone || 'UTC';
     this.salt = options.salt || '';
+    this.dashboardDataDir = options.dashboardDataDir || this.outputDir;
     
     // Initialize parser and writer
     this.logParser = new NginxLogParser('combined'); // Use combined format as default
@@ -51,6 +57,8 @@ class JobExecutor {
    * @param {string} siteConfig.logPath - Path to nginx log file
    * @param {string} [siteConfig.timezone] - Site timezone (defaults to system timezone)
    * @param {Object} [siteConfig.parserOptions] - Additional parser options
+   * @param {string} [siteConfig.format='nginx'] - Log format: 'nginx' (combined) or 'caddy' (JSON)
+   * @param {string[]} [siteConfig.aliases] - Other hostnames of the site, never counted as referrers
    * @returns {Function} Job function that can be scheduled
    */
   createSiteProcessingJob(siteConfig) {
@@ -69,12 +77,15 @@ class JobExecutor {
         // Get last processed position for incremental processing
         const lastPosition = this.lastProcessedPositions.get(siteId) || 0;
         
+        const parser = this.createParser(siteConfig);
+        
         // Create log file reader for incremental processing with error isolation
         let logReader;
         try {
           logReader = new LogFileReader(siteConfig.logPath, {
             lastPosition: lastPosition,
-            maxMemoryMB: context.maxMemoryMB || 100
+            maxMemoryMB: context.maxMemoryMB || 100,
+            rotationNaming: siteConfig.format === 'caddy' ? 'caddy' : 'suffix'
           });
         } catch (readerError) {
           throw new Error(`Failed to initialize log reader for ${siteId}: ${readerError.message}`);
@@ -86,7 +97,8 @@ class JobExecutor {
           calculator = new AnalyticsCalculator({
             timezone: siteConfig.timezone || this.timezone,
             salt: this.salt,
-            contentRankingOptions: siteConfig.parserOptions?.contentRanking
+            contentRankingOptions: siteConfig.parserOptions?.contentRanking,
+            ownDomains: [siteConfig.domain, ...(siteConfig.aliases || [])]
           });
         } catch (calculatorError) {
           throw new Error(`Failed to initialize analytics calculator for ${siteId}: ${calculatorError.message}`);
@@ -99,17 +111,18 @@ class JobExecutor {
         // Process log entries in batches with error isolation (Requirement 10.4)
         try {
           for await (const batch of logReader.streamBatches(
-            (line) => this.parseLineWithErrorHandling(line, siteId, processingErrors), 
+            (line) => this.parseLineWithErrorHandling(line, siteId, processingErrors, parser), 
             context.batchSize || 1000
           )) {
             if (batch.length > 0) {
-              // Filter out failed parsing results
+              // Filter out failed parsing results; only pageviews by people reach the calculator
               const validEntries = batch.filter(entry => entry !== null);
+              const pageviews = validEntries.filter(entry => parser.isPageview(entry) && !isLikelyBot(entry.userAgent));
               
-              if (validEntries.length > 0) {
-                calculator.processBatch(validEntries);
-                totalEntriesProcessed += validEntries.length;
+              if (pageviews.length > 0) {
+                calculator.processBatch(pageviews);
               }
+              totalEntriesProcessed += validEntries.length;
             }
           }
         } catch (streamError) {
@@ -149,7 +162,10 @@ class JobExecutor {
         // Write or update YAML dataset with data preservation (Requirement 10.2)
         let outputPath;
         try {
-          outputPath = await this.yamlWriter.updateDataset(analytics, siteConfig);
+          // One dataset file per site (not per day), so time-series history accumulates across runs.
+          outputPath = await this.yamlWriter.updateDataset(analytics, siteConfig, `${this.yamlWriter.filePrefix}-${siteId}.yaml`);
+          const dataset = yaml.load(await fs.readFile(outputPath, 'utf8'));
+          await writeDashboardFile(dataset, this.dashboardDataDir, siteId);
         } catch (yamlError) {
           // YAML generation failed - preserve existing data and report error (Requirement 10.2)
           this.logProcessingError(siteId, 'yaml_generation', yamlError, {
@@ -329,6 +345,24 @@ class JobExecutor {
   }
 
   /**
+   * The parser for a site's log format, with its options.
+   * @param {Object} siteConfig - Site configuration
+   * @returns {import('../../parser/src/parsers/base')} Parser instance
+   * @private
+   */
+  createParser(siteConfig) {
+    const opts = siteConfig.parserOptions || {};
+    if (siteConfig.format === 'caddy') {
+      return new CaddyLogParser(siteConfig.logPath, 0, {
+        clientIpHeader: opts.clientIpHeader,
+        collapsePrefixes: opts.collapsePrefixes,
+        hosts: opts.hosts
+      });
+    }
+    return new NginxLogParser(siteConfig.logPath, 0, opts.nginxFormat || 'combined');
+  }
+
+  /**
    * Validate site configuration
    * @param {Object} siteConfig - Site configuration to validate
    * @throws {Error} If configuration is invalid
@@ -353,6 +387,10 @@ class JobExecutor {
     
     if (!siteConfig.logPath || typeof siteConfig.logPath !== 'string') {
       throw new Error('Site configuration must have a valid logPath string');
+    }
+    
+    if (siteConfig.format !== undefined && !['nginx', 'caddy'].includes(siteConfig.format)) {
+      throw new Error(`Unsupported log format: ${siteConfig.format} (use 'nginx' or 'caddy')`);
     }
     
     // Validate domain format (basic check)
@@ -412,9 +450,9 @@ class JobExecutor {
    * @returns {Object|null} Parsed log entry or null if parsing failed
    * @private
    */
-  parseLineWithErrorHandling(line, siteId, processingErrors) {
+  parseLineWithErrorHandling(line, siteId, processingErrors, parser = this.logParser) {
     try {
-      const result = this.logParser.parseLine(line);
+      const result = parser.parseLine(line);
       
       // If parser returns null, it means the line was invalid but not an error
       // This is normal behavior for malformed log lines

@@ -142,25 +142,17 @@ class BaseParser {
       throw new Error(`Invalid month name: ${monthName}`);
     }
     
-    // Create date object (months are 0-indexed in JavaScript)
-    const date = new Date(
-      parseInt(year),
-      month,
-      parseInt(day),
-      parseInt(hour),
-      parseInt(minute),
-      parseInt(second)
-    );
-    
-    // Handle timezone offset
-    if (timezonePart !== '+0000') {
-      const offsetMatch = timezonePart.match(/([+-])(\d{2})(\d{2})/);
-      if (offsetMatch) {
-        const [, sign, hours, minutes] = offsetMatch;
-        const offsetMinutes = (parseInt(hours) * 60 + parseInt(minutes)) * (sign === '+' ? -1 : 1);
-        date.setMinutes(date.getMinutes() + offsetMinutes);
-      }
+    // The fields are wall-clock time at the logged offset: read them as UTC, then subtract the
+    // offset. (Building a local-time Date made results depend on the server's TZ.)
+    const offsetMatch = timezonePart.match(/^([+-])(\d{2})(\d{2})$/);
+    if (!offsetMatch) {
+      throw new Error(`Invalid timezone offset: ${timezonePart}`);
     }
+    const [, sign, offHours, offMinutes] = offsetMatch;
+    const offsetMs = (parseInt(offHours) * 60 + parseInt(offMinutes)) * 60000 * (sign === '+' ? 1 : -1);
+    const date = new Date(
+      Date.UTC(parseInt(year), month, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second)) - offsetMs
+    );
     
     return date;
   }

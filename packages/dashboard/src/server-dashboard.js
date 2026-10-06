@@ -17,6 +17,10 @@ const { DEFAULTS } = require('@analytics-system/shared');
 class ServerDashboard {
   constructor(options = {}) {
     this.port = options.port || DEFAULTS.DASHBOARD_PORT;
+    /** Listen address. Loopback by default: put a reverse proxy in front for remote access. */
+    this.host = options.host || '127.0.0.1';
+    /** Origins allowed to embed the dashboard in an iframe (CSP frame-ancestors); empty = nobody. */
+    this.frameAncestors = options.frameAncestors || [];
     this.dataDir = options.dataDir || DEFAULTS.DATA_PATH;
     this.passwordHash = options.passwordHash;
     this.httpsOnly = options.httpsOnly !== false; // Default to true for production
@@ -112,7 +116,11 @@ class ServerDashboard {
     // Security headers
     this.app.use((req, res, next) => {
       res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('X-Frame-Options', 'DENY');
+      if (this.frameAncestors.length) {
+        res.setHeader('Content-Security-Policy', `frame-ancestors ${this.frameAncestors.join(' ')}`);
+      } else {
+        res.setHeader('X-Frame-Options', 'DENY');
+      }
       res.setHeader('X-XSS-Protection', '1; mode=block');
       res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
       
@@ -470,7 +478,7 @@ class ServerDashboard {
       }
 
       const data = await this.staticDashboard.loadSiteData(siteId);
-      const site = { config: siteConfig, data };
+      const site = { config: siteConfig, data, lastUpdated: data.metadata?.generated_at };
       
       const html = this.generateServerSiteHTML(siteId, site);
       
@@ -860,8 +868,8 @@ class ServerDashboard {
   async start() {
     return new Promise((resolve, reject) => {
       try {
-        this.server = this.app.listen(this.port, () => {
-          console.log(`🚀 Dashboard server running on port ${this.port}`);
+        this.server = this.app.listen(this.port, this.host, () => {
+          console.log(`🚀 Dashboard server running on ${this.host}:${this.port}`);
           console.log(`📊 Dashboard URL: http${this.httpsOnly ? 's' : ''}://localhost:${this.port}`);
           
           if (this.passwordHash) {

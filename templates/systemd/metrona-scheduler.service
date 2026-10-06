@@ -1,0 +1,28 @@
+[Unit]
+Description=Metrona log processing (scheduler)
+After=network.target
+
+[Service]
+Type=simple
+User=metrona
+Group=metrona
+# Read Caddy's logs (mode 0640, group caddy)
+SupplementaryGroups=caddy
+WorkingDirectory=/opt/metrona
+ExecStart=/usr/bin/node packages/scheduler/src/daemon.js -c /etc/metrona/metrona.yaml -o /var/lib/metrona/datasets --dashboard-data /var/lib/metrona/dashboard
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+# VISITOR_HASH_SALT=<random, long, never changes>
+EnvironmentFile=/etc/metrona/metrona.env
+Environment=NODE_ENV=production TZ=UTC
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/var/log/caddy /etc/metrona
+ReadWritePaths=/var/lib/metrona
+
+[Install]
+WantedBy=multi-user.target

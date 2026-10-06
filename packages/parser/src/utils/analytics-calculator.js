@@ -16,6 +16,7 @@ class AnalyticsCalculator {
    * @param {string} [options.timezone='UTC'] - Timezone for time-series grouping
    * @param {string} [options.salt=''] - Salt for visitor hashing
    * @param {Object} [options.contentRankingOptions] - Options for content ranking
+   * @param {string[]} [options.ownDomains] - The site's own hostnames, never counted as referrers
    */
   constructor(options = {}) {
     this.timezone = options.timezone || 'UTC';
@@ -23,7 +24,8 @@ class AnalyticsCalculator {
     
     // Initialize utility classes
     this.timeSeriesGrouper = new TimeSeriesGrouper(this.timezone);
-    this.contentRanker = new ContentRanker(options.contentRankingOptions);
+    this.ownDomains = (options.ownDomains || []).map(d => String(d).toLowerCase());
+    this.contentRanker = new ContentRanker({ ...options.contentRankingOptions, ownDomains: [...(options.contentRankingOptions?.ownDomains || []), ...this.ownDomains] });
     this.visitorHasher = new VisitorHasher(this.salt);
     
     // Track processed data
@@ -95,6 +97,9 @@ class AnalyticsCalculator {
       // Extract domain from referrer URL
       const referrerUrl = new URL(entry.referrer);
       const domain = referrerUrl.hostname;
+      if (this.ownDomains.includes(domain.toLowerCase())) {
+        return;
+      }
       const fullPath = entry.referrer;
 
       // Initialize domain entry if it doesn't exist
@@ -209,6 +214,7 @@ class AnalyticsCalculator {
     const topReferrers = rankedReferrers.slice(0, limit).map(referrer => ({
       domain: referrer.referrer,
       totalReferrals: referrer.pageviews,
+      uniqueVisitors: referrer.uniqueVisitors,
       percentage: referrer.percentage,
       topPaths: referrer.samplePaths.slice(0, pathsPerDomain).map(path => ({
         url: path,

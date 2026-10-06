@@ -1,3 +1,5 @@
+# Older nginx-oriented example. For the scheduler + dashboard as they run today (camelCase
+# fields, Caddy or nginx logs), start from metrona.yaml.example instead.
 # Metrona Analytics System Configuration
 # Copy this file to /etc/analytics/config.yaml and customize
 

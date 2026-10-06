@@ -421,6 +421,16 @@ class ConfigurationManager {
       throw new Error('Site timezone must be a string');
     }
     
+    if (site.format !== undefined && !['nginx', 'caddy'].includes(site.format)) {
+      throw new Error(`Site format must be 'nginx' or 'caddy', got '${site.format}'`);
+    }
+    
+    if (site.aliases !== undefined) {
+      if (!Array.isArray(site.aliases) || !site.aliases.every(a => typeof a === 'string' && this.validateDomainName(a))) {
+        throw new Error('Site aliases must be a list of domain names');
+      }
+    }
+    
     // Validate parser options if present
     if (site.parserOptions) {
       this.validateParserOptions(site.parserOptions);

@@ -198,6 +198,7 @@ class YamlDatasetWriter {
         domains: (analyticsData.referrers?.topReferrers || []).map(ref => ({
           domain: ref.domain,
           totalReferrals: ref.totalReferrals,
+          uniqueVisitors: ref.uniqueVisitors || 0,
           percentage: ref.percentage,
           topPaths: ref.topPaths || []
         }))
@@ -343,8 +344,16 @@ class YamlDatasetWriter {
       existingBuckets.set(bucket.timestamp, bucket);
     });
 
-    // Merge new buckets, replacing existing ones with same timestamp
-    (newData.buckets || []).forEach(bucket => {
+    // Merge new buckets, replacing existing ones with same timestamp. The oldest new bucket can be
+    // partial (the logs it came from start mid-period once older files are rotated away), so it
+    // never replaces a stored bucket that counted more.
+    const newBuckets = newData.buckets || [];
+    const oldestNew = newBuckets.reduce((min, b) => (min === null || new Date(b.timestamp) < new Date(min) ? b.timestamp : min), null);
+    newBuckets.forEach(bucket => {
+      const stored = existingBuckets.get(bucket.timestamp);
+      if (bucket.timestamp === oldestNew && stored && (stored.pageviews || 0) > (bucket.pageviews || 0)) {
+        return;
+      }
       existingBuckets.set(bucket.timestamp, bucket);
     });
 
