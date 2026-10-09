@@ -573,7 +573,7 @@ class ServerDashboard {
         <div class="sites-section">
             <h2>Sites Overview</h2>
             <div class="sites-grid">
-                ${sites.map(([siteId, site]) => this.staticDashboard.generateSiteCard(siteId, site)).join('')}
+                ${sites.map(([siteId, site]) => this.staticDashboard.generateSiteCard(siteId, site, `/site/${encodeURIComponent(siteId)}`)).join('')}
             </div>
         </div>
 

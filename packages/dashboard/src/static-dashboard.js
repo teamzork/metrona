@@ -211,9 +211,11 @@ class StaticDashboard {
    * Generate HTML card for a site on the index page
    * @param {string} siteId - Site identifier
    * @param {Object} site - Site data and config
+   * @param {string} [href] - Where the card links: the site's page file in static mode,
+   *   `/site/<id>` from the server dashboard
    * @returns {string} HTML content for site card
    */
-  generateSiteCard(siteId, site) {
+  generateSiteCard(siteId, site, href = `${siteId}.html`) {
     if (!site.data) {
       return `
         <div class="site-card error">
@@ -233,7 +235,7 @@ class StaticDashboard {
     const topPage = summary.top_pages && summary.top_pages[0] ? summary.top_pages[0] : null;
 
     return `
-        <div class="site-card" onclick="window.location.href='${siteId}.html'">
+        <div class="site-card" onclick="window.location.href='${href}'">
             <h3>${site.config.domain || siteId}</h3>
             <div class="site-metrics">
                 <div class="metric-row">

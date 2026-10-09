@@ -219,6 +219,9 @@ describe('ServerDashboard', () => {
       expect(html).toContain('1,000'); // Formatted pageviews
       expect(html).toContain('Logout');
       expect(html).toContain('server-dashboard.js');
+      // Site cards link to the server's site route, not the static export's file names.
+      expect(html).toContain("window.location.href='/site/test-site'");
+      expect(html).not.toContain('test-site.html');
     });
 
     test('should generate server site HTML', () => {
