@@ -1,108 +1,161 @@
-# Setup Guide
+# Installing Metrona on a server
 
-This guide will help you set up the Metrona Analytics System on your server.
+This guide is for whoever runs the server. Site owners who just read the dashboard want the
+[user guide](user-guide.md).
 
-## Prerequisites
+Metrona runs as two small services on the machine that has the web server's access logs:
 
-- Node.js 18 or higher
-- nginx web server
-- Linux/Unix system (Ubuntu, Debian, CentOS, etc.)
-- Root or sudo access for system configuration
+| Service | What it does |
+| --- | --- |
+| `metrona-scheduler` | Every hour, reads each site's access log and writes the site's numbers to `/var/lib/metrona` |
+| `metrona-dashboard` | Serves the dashboard on `127.0.0.1:3001`, for your web server to put behind HTTPS and a password |
 
-## Installation Steps
+Both read one config file, `/etc/metrona/metrona.yaml`. Nothing else is needed: no database, no
+build step, and no outgoing network access.
 
-### 1. Install the CLI Tool
+## Requirements
 
-```bash
-npm install -g @metrona/cli
-```
+- Linux with systemd (examples use Ubuntu/Debian paths)
+- Node.js 18 or newer at `/usr/bin/node`
+- nginx or Caddy (2.8+) writing an access log per site
 
-### 2. Run the Setup Wizard
-
-```bash
-sudo metrona setup
-```
-
-The setup wizard will guide you through:
-- Dependency checking
-- Storage configuration
-- Dashboard password setup
-- Site configuration
-- nginx integration
-- systemd service creation
-
-### 3. Verify Installation
+## 1. Get the code
 
 ```bash
-# Check scheduler status
-systemctl status analytics-scheduler
-
-# Check logs
-journalctl -u analytics-scheduler -f
+sudo useradd --system --home /var/lib/metrona --shell /usr/sbin/nologin metrona
+sudo git clone https://github.com/teamzork/metrona.git /opt/metrona
+cd /opt/metrona && sudo npm ci --omit=dev
+sudo mkdir -p /etc/metrona /var/lib/metrona/datasets /var/lib/metrona/dashboard
+sudo chown -R metrona:metrona /var/lib/metrona
 ```
 
-## Manual Configuration
+## 2. Let Metrona read the logs
 
-If you prefer manual setup, follow these steps:
-
-### 1. Create Configuration Directory
+**Caddy.** Give each site a JSON log file, group-readable (`mode 0640`). See
+`templates/caddy/Caddyfile.example` and [caddy.md](caddy.md). Metrona reads them through the
+`caddy` group:
 
 ```bash
-sudo mkdir -p /etc/analytics
-sudo mkdir -p /var/analytics/data
+sudo usermod -aG caddy metrona
 ```
 
-### 2. Copy Configuration Template
+**nginx.** nginx's default *combined* format already works. Give each site its own `access_log`
+so one file holds one site. On Ubuntu and Debian, nginx logs belong to the `adm` group:
 
 ```bash
-sudo cp templates/config/analytics-config.yaml.example /etc/analytics/config.yaml
-sudo chmod 600 /etc/analytics/config.yaml
+sudo usermod -aG adm metrona
 ```
 
-### 3. Edit Configuration
+**Behind Cloudflare's proxy?** Then the address in the log is Cloudflare's, not the visitor's,
+and visitor counts are meaningless. With Caddy, set `parserOptions.clientIpHeader:
+Cf-Connecting-Ip` for that site. With nginx, use `templates/nginx/cloudflare.conf`, which writes a
+separate log with the visitor's address (it explains how).
 
-Edit `/etc/analytics/config.yaml` with your site details and preferences.
+Rotation: Metrona reads each site's current log plus the files rotated beside it (logrotate's
+`.1`, or Caddy's dated files). It keeps day-by-day totals after files are rotated away, so hourly
+runs miss nothing. Top pages and referrers cover the log files still on disk. Keep about 30 days of
+logs if you want 30-day lists.
 
-### 4. Configure nginx
-
-Add the analytics log format to your nginx configuration:
+## 3. Configure
 
 ```bash
-sudo cp templates/nginx/log-format.conf /etc/nginx/conf.d/
+sudo cp /opt/metrona/templates/config/metrona.yaml.example /etc/metrona/metrona.yaml
+sudo editor /etc/metrona/metrona.yaml
 ```
 
-Add analytics logging to your site configurations:
+One entry under `sites` per site: `siteId` (short, lowercase), `siteName`, `domain`, other names
+in `aliases` (so your own links aren't counted as referrers), `logPath`, `format` (`nginx` or
+`caddy`), and `schedule: hourly`. The example file explains each field.
+
+Then the secrets, in `/etc/metrona/metrona.env`:
+
+```bash
+printf 'VISITOR_HASH_SALT=%s\nSESSION_SECRET=%s\n' "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" \
+  | sudo tee /etc/metrona/metrona.env > /dev/null
+sudo chown root:metrona /etc/metrona/metrona.* && sudo chmod 0640 /etc/metrona/metrona.*
+```
+
+**Never change `VISITOR_HASH_SALT`** once Metrona is counting, or every visitor afterwards looks
+new. Back it up with the rest of `/etc/metrona`.
+
+## 4. Start the services
+
+```bash
+sudo cp /opt/metrona/templates/systemd/metrona-*.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now metrona-scheduler metrona-dashboard
+```
+
+The unit files are written for Caddy. For nginx, edit `metrona-scheduler.service`: replace
+`SupplementaryGroups=caddy` with `adm` and `/var/log/caddy` with `/var/log/nginx`.
+
+The first numbers appear at the top of the next hour (the scheduler runs on the hour, not when it
+starts). Check on it with:
+
+```bash
+systemctl status metrona-scheduler metrona-dashboard
+sudo journalctl -u metrona-scheduler -f       # each hourly run, and any parse warnings
+ls -l /var/lib/metrona/dashboard              # one <siteId>.yaml per site, rewritten hourly
+```
+
+## 5. Put the dashboard online
+
+The dashboard listens on `127.0.0.1:3001` only. Give it a hostname through your web server, with
+HTTPS and a password.
+
+**Caddy** (TLS is automatic; make the hash with `caddy hash-password`):
+
+```
+metrona.example.com {
+	basic_auth {
+		admin <hash>
+	}
+	reverse_proxy 127.0.0.1:3001
+}
+```
+
+**nginx** (with a certificate from certbot or similar; make the password file with `htpasswd`):
 
 ```nginx
-access_log /var/log/nginx/yoursite-analytics.log analytics;
+server {
+    listen 443 ssl;
+    server_name metrona.example.com;
+    # ssl_certificate ... ;
+    auth_basic "Metrona";
+    auth_basic_user_file /etc/nginx/metrona.htpasswd;
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
 ```
 
-### 5. Install systemd Service
+Prefer Metrona's own login page to basic auth? Set `dashboard.passwordHash` in `metrona.yaml` to
+a bcrypt hash:
 
 ```bash
-sudo cp templates/systemd/analytics-scheduler.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable analytics-scheduler
-sudo systemctl start analytics-scheduler
+cd /opt/metrona && node -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" 'the password'
+```
+
+To embed the dashboard in another site's admin pages, list that site's origin in
+`dashboard.frameAncestors`.
+
+## Updating
+
+```bash
+cd /opt/metrona && sudo git pull && sudo npm ci --omit=dev
+sudo systemctl restart metrona-scheduler metrona-dashboard
 ```
 
 ## Troubleshooting
 
-### Common Issues
+| Symptom | Look at |
+| --- | --- |
+| A site never gets numbers | `journalctl -u metrona-scheduler`: "Log file not found" or "Permission denied" means the `logPath` is wrong or the group from step 2 is missing (restart the service after `usermod`) |
+| Visitors look far too few | The site is behind a proxy and the log has the proxy's address: see "Behind Cloudflare's proxy?" |
+| Numbers stopped updating | `systemctl status metrona-scheduler`; the card's "Updated" time on the dashboard shows the last run |
+| The dashboard answers 502 | `systemctl status metrona-dashboard`, and that the proxy points at `127.0.0.1:3001` |
 
-1. **Permission denied errors**: Ensure the analytics user has read access to nginx logs
-2. **Configuration validation fails**: Check YAML syntax and file paths
-3. **Scheduler not starting**: Check logs with `journalctl -u analytics-scheduler`
-
-### Log Locations
-
-- Scheduler logs: `journalctl -u analytics-scheduler`
-- nginx logs: `/var/log/nginx/`
-- Analytics data: `/var/analytics/data/`
-
-## Next Steps
-
-After installation:
-1. Access the dashboard at `http://your-server:3001`
-2. Embed components in your applications
-3. Monitor system performance and logs
+The CLI in `packages/cli` (`metrona setup`) is an early nginx setup wizard. The steps above are the
+supported way to install.
