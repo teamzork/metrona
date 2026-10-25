@@ -1,5 +1,5 @@
 {
-  "name": "@analytics-system/dashboard",
+  "name": "@metrona/dashboard",
   "version": "1.0.0",
   "description": "Central monitoring dashboard for Metrona Analytics System",
   "main": "src/index.js",
@@ -13,7 +13,7 @@
     "serve": "http-server public -p 3001"
   },
   "dependencies": {
-    "@analytics-system/shared": "^1.0.0",
+    "@metrona/shared": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "express": "^4.18.0",
     "express-rate-limit": "^7.1.0",

@@ -81,10 +81,10 @@ class NginxConfigValidator {
         // Provide suggestions
         console.log('\n💡 Suggestions:');
         if (!hasLogFormat) {
-          console.log('   • Run: analytics-system nginx log-format');
+          console.log('   • Run: metrona nginx log-format');
         }
         if (sitesWithAnalytics.length === 0) {
-          console.log('   • Run: analytics-system nginx site-config --interactive');
+          console.log('   • Run: metrona nginx site-config --interactive');
         }
         
         return false;

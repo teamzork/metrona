@@ -1,5 +1,5 @@
 {
-  "name": "@analytics-system/shared",
+  "name": "@metrona/shared",
   "version": "1.0.0",
   "description": "Shared types and utilities for Metrona Analytics System",
   "main": "src/index.js",

@@ -12,7 +12,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const yaml = require('js-yaml');
 const { StaticDashboard } = require('./static-dashboard');
-const { DEFAULTS } = require('@analytics-system/shared');
+const { DEFAULTS } = require('@metrona/shared');
 
 class ServerDashboard {
   constructor(options = {}) {

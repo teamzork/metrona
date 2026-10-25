@@ -15,7 +15,7 @@ const { version } = require('../package.json');
 const program = new Command();
 
 program
-  .name('analytics-system')
+  .name('metrona')
   .description('Metrona Analytics System - Privacy-focused web analytics')
   .version(version);
 
@@ -51,7 +51,7 @@ program
       
       console.log(chalk.green.bold('\n🎉 Setup completed successfully!'));
       console.log(chalk.cyan('You can now start the analytics system with:'));
-      console.log(chalk.white('  systemctl start analytics-system'));
+      console.log(chalk.white('  systemctl start metrona-scheduler metrona-dashboard'));
       
     } catch (error) {
       console.error(chalk.red.bold('\n❌ Setup failed:'), error.message);

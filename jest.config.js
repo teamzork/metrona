@@ -20,12 +20,12 @@ module.exports = {
   
   // Module path mapping for workspace packages
   moduleNameMapper: {
-    '^@analytics-system/shared$': '<rootDir>/packages/shared/src/index.js',
-    '^@analytics-system/parser$': '<rootDir>/packages/parser/src/index.js',
-    '^@analytics-system/scheduler$': '<rootDir>/packages/scheduler/src/index.js',
-    '^@analytics-system/cli$': '<rootDir>/packages/cli/src/index.js',
-    '^@analytics-system/dashboard$': '<rootDir>/packages/dashboard/src/index.js',
-    '^@analytics-system/components$': '<rootDir>/packages/components/src/index.js'
+    '^@metrona/shared$': '<rootDir>/packages/shared/src/index.js',
+    '^@metrona/parser$': '<rootDir>/packages/parser/src/index.js',
+    '^@metrona/scheduler$': '<rootDir>/packages/scheduler/src/index.js',
+    '^@metrona/cli$': '<rootDir>/packages/cli/src/index.js',
+    '^@metrona/dashboard$': '<rootDir>/packages/dashboard/src/index.js',
+    '^@metrona/components$': '<rootDir>/packages/components/src/index.js'
   },
   
   // Setup files

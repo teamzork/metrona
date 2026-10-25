@@ -73,3 +73,7 @@ analytics-data/
 **/property-test-output-*/
 **/non-existent-*/
 test-temp/
+# Demo and test output
+demo-output/
+demo-dashboard-output/
+test-pipeline-output/

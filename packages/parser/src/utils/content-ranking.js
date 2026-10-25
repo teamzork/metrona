@@ -38,7 +38,7 @@ class ContentRanker {
 
   /**
    * Rank pages by traffic volume (pageviews)
-   * @param {import('@analytics-system/shared').LogEntry[]} entries - Log entries to analyze
+   * @param {import('@metrona/shared').LogEntry[]} entries - Log entries to analyze
    * @param {string} [metric='pageviews'] - Metric to rank by ('pageviews' or 'uniqueVisitors')
    * @returns {Array} Ranked pages with traffic data
    */
@@ -126,7 +126,7 @@ class ContentRanker {
 
   /**
    * Rank referrers by traffic volume
-   * @param {import('@analytics-system/shared').LogEntry[]} entries - Log entries to analyze
+   * @param {import('@metrona/shared').LogEntry[]} entries - Log entries to analyze
    * @param {boolean} [groupByDomain=true] - Whether to group by domain or keep full URLs
    * @returns {Array} Ranked referrers with traffic data
    */
@@ -218,7 +218,7 @@ class ContentRanker {
 
   /**
    * Get top content across multiple metrics
-   * @param {import('@analytics-system/shared').LogEntry[]} entries - Log entries to analyze
+   * @param {import('@metrona/shared').LogEntry[]} entries - Log entries to analyze
    * @returns {Object} Object containing top pages and referrers
    */
   getTopContent(entries) {

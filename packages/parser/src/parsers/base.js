@@ -22,7 +22,7 @@ class BaseParser {
   /**
    * Parse a single log line into a LogEntry object
    * @param {string} line - Raw log line
-   * @returns {import('@analytics-system/shared').LogEntry|null} Parsed log entry or null if invalid
+   * @returns {import('@metrona/shared').LogEntry|null} Parsed log entry or null if invalid
    * @abstract
    */
   parseLine(line) {
@@ -31,7 +31,7 @@ class BaseParser {
 
   /**
    * Validate that a log entry represents a pageview
-   * @param {import('@analytics-system/shared').LogEntry} entry - Log entry to validate
+   * @param {import('@metrona/shared').LogEntry} entry - Log entry to validate
    * @returns {boolean} True if entry is a valid pageview
    */
   isPageview(entry) {

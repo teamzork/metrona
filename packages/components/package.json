@@ -1,5 +1,5 @@
 {
-  "name": "@analytics-system/components",
+  "name": "@metrona/components",
   "version": "1.0.0",
   "description": "Embeddable analytics components for Metrona Analytics System",
   "main": "src/index.js",
@@ -11,7 +11,7 @@
     "lint": "eslint src/**/*.js"
   },
   "dependencies": {
-    "@analytics-system/shared": "^1.0.0",
+    "@metrona/shared": "^1.0.0",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {

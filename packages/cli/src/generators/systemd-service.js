@@ -9,7 +9,7 @@ const path = require('path');
 class SystemdServiceGenerator {
   constructor(options = {}) {
     this.systemdDir = options.systemdDir || '/etc/systemd/system';
-    this.serviceName = options.serviceName || 'analytics-system';
+    this.serviceName = options.serviceName || 'metrona';
     this.user = options.user || 'analytics';
     this.group = options.group || 'analytics';
     this.backupDir = options.backupDir || '/tmp/systemd-backups';
@@ -26,7 +26,7 @@ class SystemdServiceGenerator {
     
     return `[Unit]
 Description=Metrona Analytics System
-Documentation=https://github.com/your-org/metrona-analytics-system
+Documentation=https://github.com/teamzork/metrona
 After=network.target nginx.service
 Wants=nginx.service
 

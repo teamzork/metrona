@@ -14,13 +14,13 @@ This guide will help you set up the Metrona Analytics System on your server.
 ### 1. Install the CLI Tool
 
 ```bash
-npm install -g @analytics-system/cli
+npm install -g @metrona/cli
 ```
 
 ### 2. Run the Setup Wizard
 
 ```bash
-sudo analytics-system setup
+sudo metrona setup
 ```
 
 The setup wizard will guide you through:

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Writes the dashboard's view of a site: `<dataDir>/<siteId>.yaml` in the snake_case
- * schema the dashboard reads (see demo-dashboard-data/), built from the dataset YamlDatasetWriter
+ * schema the dashboard reads (see examples/data/), built from the dataset YamlDatasetWriter
  * keeps. The dataset stays the source of truth; this file is regenerated after every run.
  */
 

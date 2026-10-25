@@ -17,7 +17,7 @@ describe('SetupWizard', () => {
   describe('Constructor', () => {
     it('should create wizard with default config path', () => {
       const defaultWizard = new SetupWizard();
-      expect(defaultWizard.configPath).toBe('/etc/analytics-system/config.yaml');
+      expect(defaultWizard.configPath).toBe('/etc/metrona/metrona.yaml');
     });
 
     it('should create wizard with custom config path', () => {

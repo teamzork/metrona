@@ -14,7 +14,7 @@ const { SystemdServiceGenerator } = require('../generators/systemd-service');
 
 class SetupWizard {
   constructor(options = {}) {
-    this.configPath = options.configPath || '/etc/analytics-system/config.yaml';
+    this.configPath = options.configPath || '/etc/metrona/metrona.yaml';
     this.backupPath = null;
     this.rollbackActions = [];
   }
@@ -68,7 +68,7 @@ class SetupWizard {
         type: 'input',
         name: 'outputDir',
         message: 'Where should analytics data be stored?',
-        default: '/var/lib/analytics-system/data',
+        default: '/var/lib/metrona/datasets',
         validate: (input) => {
           if (!input.trim()) return 'Output directory is required';
           if (!path.isAbsolute(input)) return 'Please provide an absolute path';

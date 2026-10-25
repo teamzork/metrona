@@ -1,5 +1,5 @@
 {
-  "name": "metrona-analytics-system",
+  "name": "metrona",
   "version": "1.0.0",
   "description": "Self-hosted, privacy-focused web analytics system",
   "private": true,

@@ -15,7 +15,7 @@ class TimeSeriesGrouper {
 
   /**
    * Group log entries by time periods
-   * @param {import('@analytics-system/shared').LogEntry[]} entries - Log entries to group
+   * @param {import('@metrona/shared').LogEntry[]} entries - Log entries to group
    * @param {string} period - Time period ('hourly', 'daily', 'monthly')
    * @param {Date} [startDate] - Start date for grouping (optional)
    * @param {Date} [endDate] - End date for grouping (optional)

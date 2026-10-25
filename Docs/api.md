@@ -136,7 +136,7 @@ Command-line interface for system management.
 Interactive setup wizard.
 
 ```bash
-analytics-system setup [options]
+metrona setup [options]
 ```
 
 **Options:**
@@ -150,7 +150,7 @@ analytics-system setup [options]
 Add a new site to monitoring.
 
 ```bash
-analytics-system add-site <domain> [options]
+metrona add-site <domain> [options]
 ```
 
 **Options:**
@@ -161,7 +161,7 @@ analytics-system add-site <domain> [options]
 Remove a site from monitoring.
 
 ```bash
-analytics-system remove-site <domain>
+metrona remove-site <domain>
 ```
 
 ### Status
@@ -169,7 +169,7 @@ analytics-system remove-site <domain>
 Show system status and health.
 
 ```bash
-analytics-system status [options]
+metrona status [options]
 ```
 
 **Options:**
@@ -183,7 +183,7 @@ Programmatic interface for log processing.
 ### NginxLogParser
 
 ```javascript
-const { NginxLogParser } = require('@analytics-system/parser');
+const { NginxLogParser } = require('@metrona/parser');
 
 const parser = new NginxLogParser('/var/log/nginx/access.log');
 const analytics = await parser.generateAnalytics();
@@ -192,7 +192,7 @@ const analytics = await parser.generateAnalytics();
 ### AnalyticsCalculator
 
 ```javascript
-const { AnalyticsCalculator } = require('@analytics-system/parser');
+const { AnalyticsCalculator } = require('@metrona/parser');
 
 const calculator = new AnalyticsCalculator();
 const uniqueVisitors = calculator.calculateUniqueVisitors(logEntries);

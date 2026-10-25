@@ -14,12 +14,12 @@ A self-hosted, privacy-focused web analytics system that parses nginx access log
 
 This is a monorepo containing five main packages:
 
-- **`@analytics-system/shared`** - Shared types and utilities
-- **`@analytics-system/parser`** - Core log processing and analytics generation
-- **`@analytics-system/scheduler`** - Daemon service for automated processing
-- **`@analytics-system/cli`** - Interactive setup wizard and management tools
-- **`@analytics-system/dashboard`** - Central monitoring interface
-- **`@analytics-system/components`** - Embeddable analytics widgets
+- **`@metrona/shared`** - Shared types and utilities
+- **`@metrona/parser`** - Core log processing and analytics generation
+- **`@metrona/scheduler`** - Daemon service for automated processing
+- **`@metrona/cli`** - Interactive setup wizard and management tools
+- **`@metrona/dashboard`** - Central monitoring interface
+- **`@metrona/components`** - Embeddable analytics widgets
 
 ## Quick Start
 

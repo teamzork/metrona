@@ -200,7 +200,7 @@ sections:  # Optional, based on URL patterns
 
 ## Implementation Details
 
-### 1. CLI Package (`@analytics-system/cli`)
+### 1. CLI Package (`@metrona/cli`)
 
 **Dependencies:**
 - `commander` - CLI framework
@@ -237,7 +237,7 @@ analytics-system test-parser    # Test log parsing manually
 - Validate configs with `nginx -t` before applying
 - Offer rollback if validation fails
 
-### 2. Parser Package (`@analytics-system/parser`)
+### 2. Parser Package (`@metrona/parser`)
 
 **Dependencies:**
 - `js-yaml` - YAML generation
@@ -263,7 +263,7 @@ analytics-system test-parser    # Test log parsing manually
 - Use streaming JSON/YAML writers for large datasets
 - Incremental updates: merge with existing data.yaml instead of full recalculation
 
-### 3. Scheduler Package (`@analytics-system/scheduler`)
+### 3. Scheduler Package (`@metrona/scheduler`)
 
 **Dependencies:**
 - `node-cron` - Cron job scheduling
@@ -291,7 +291,7 @@ async function runJob(site) {
 }
 ```
 
-### 4. Dashboard Package (`@analytics-system/dashboard`)
+### 4. Dashboard Package (`@metrona/dashboard`)
 
 **Two Deployment Modes:**
 
@@ -319,7 +319,7 @@ async function runJob(site) {
 **Chart Library:**
 Use lightweight vanilla JS charting (e.g., Chart.js or custom SVG)
 
-### 5. Components Package (`@analytics-system/components`)
+### 5. Components Package (`@metrona/components`)
 
 **Framework-Agnostic Design:**
 Use Web Components (Custom Elements) for maximum compatibility
@@ -461,7 +461,7 @@ cd packages/cli && npm link
 ### Initial Setup
 ```bash
 # Install globally
-npm install -g @analytics-system/cli
+npm install -g @metrona/cli
 
 # Run setup
 sudo analytics-system setup
@@ -473,10 +473,10 @@ systemctl status analytics-scheduler
 ### Adding to a Next.js Project
 ```bash
 # In your Next.js project
-npm install @analytics-system/components
+npm install @metrona/components
 
 # Create analytics page: app/analytics/page.js
-import '@analytics-system/components';
+import '@metrona/components';
 
 export default function AnalyticsPage() {
   return (
@@ -517,11 +517,11 @@ export default function AnalyticsPage() {
 ## Build Instructions for Claude Code
 
 1. **Initialize monorepo** with npm workspaces
-2. **Start with `@analytics-system/parser`** - core functionality
-3. **Then `@analytics-system/scheduler`** - daemon
-4. **Then `@analytics-system/cli`** - setup wizard
-5. **Then `@analytics-system/dashboard`** - central view
-6. **Finally `@analytics-system/components`** - embeddable widgets
+2. **Start with `@metrona/parser`** - core functionality
+3. **Then `@metrona/scheduler`** - daemon
+4. **Then `@metrona/cli`** - setup wizard
+5. **Then `@metrona/dashboard`** - central view
+6. **Finally `@metrona/components`** - embeddable widgets
 
 For each package:
 - Set up TypeScript/JSDoc for type safety

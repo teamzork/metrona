@@ -6,12 +6,12 @@ The Metrona Analytics System follows a modular, microservices-inspired architect
 
 ### Core Packages
 
-1. **@analytics-system/shared** - Common types, constants, and utilities
-2. **@analytics-system/parser** - Log parsing and analytics calculation engine
-3. **@analytics-system/scheduler** - Cron daemon for automated processing
-4. **@analytics-system/cli** - Interactive setup wizard and management tools
-5. **@analytics-system/dashboard** - Central monitoring web interface
-6. **@analytics-system/components** - Embeddable analytics widgets
+1. **@metrona/shared** - Common types, constants, and utilities
+2. **@metrona/parser** - Log parsing and analytics calculation engine
+3. **@metrona/scheduler** - Cron daemon for automated processing
+4. **@metrona/cli** - Interactive setup wizard and management tools
+5. **@metrona/dashboard** - Central monitoring web interface
+6. **@metrona/components** - Embeddable analytics widgets
 
 ### Data Flow
 

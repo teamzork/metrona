@@ -12,11 +12,11 @@ The system operates on a log-parsing paradigm where nginx access logs are proces
 
 The system follows a microservices-inspired monorepo architecture with five core packages:
 
-1. **CLI Package** (`@analytics-system/cli`): Interactive setup wizard and management tools
-2. **Parser Package** (`@analytics-system/parser`): Core log processing and analytics generation
-3. **Scheduler Package** (`@analytics-system/scheduler`): Daemon service for automated processing
-4. **Dashboard Package** (`@analytics-system/dashboard`): Central monitoring interface
-5. **Components Package** (`@analytics-system/components`): Embeddable analytics widgets
+1. **CLI Package** (`@metrona/cli`): Interactive setup wizard and management tools
+2. **Parser Package** (`@metrona/parser`): Core log processing and analytics generation
+3. **Scheduler Package** (`@metrona/scheduler`): Daemon service for automated processing
+4. **Dashboard Package** (`@metrona/dashboard`): Central monitoring interface
+5. **Components Package** (`@metrona/components`): Embeddable analytics widgets
 
 ### Data Flow Architecture
 

@@ -77,7 +77,7 @@ function printHelp() {
   console.log(`
 Metrona Analytics Scheduler Daemon
 
-Usage: analytics-scheduler [options]
+Usage: metrona-scheduler [options]
 
 Options:
   -c, --config <path>     Configuration file path (default: ./config/scheduler.yaml)
@@ -91,10 +91,10 @@ Options:
   -v, --version           Show version information
 
 Examples:
-  analytics-scheduler                                    # Run with default settings
-  analytics-scheduler -c /etc/metrona/scheduler.yaml    # Use custom config
-  analytics-scheduler -o /var/lib/metrona/analytics     # Custom output directory
-  analytics-scheduler -d                                # Run as daemon
+  metrona-scheduler                                    # Run with default settings
+  metrona-scheduler -c /etc/metrona/scheduler.yaml    # Use custom config
+  metrona-scheduler -o /var/lib/metrona/analytics     # Custom output directory
+  metrona-scheduler -d                                # Run as daemon
 
 Signals:
   SIGTERM, SIGINT         Graceful shutdown
