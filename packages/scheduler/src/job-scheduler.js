@@ -138,6 +138,7 @@ class JobScheduler extends EventEmitter {
     
     this.runningJobs.add(jobId);
     const startTime = new Date();
+    let timeoutHandle;
     
     try {
       this.emit('jobStarted', { jobId, startTime });
@@ -146,7 +147,6 @@ class JobScheduler extends EventEmitter {
       const timeoutMs = context.timeout || 300000; // 5 minute default timeout
       const jobPromise = jobFunction(context);
       
-      let timeoutHandle;
       const timeoutPromise = new Promise((_, reject) => {
         timeoutHandle = setTimeout(() => {
           reject(new Error(`Job execution timeout after ${timeoutMs}ms`));
@@ -155,7 +155,6 @@ class JobScheduler extends EventEmitter {
       
       // Race between job completion and timeout
       const result = await Promise.race([jobPromise, timeoutPromise]);
-      clearTimeout(timeoutHandle);
       
       // Update success statistics
       const endTime = new Date();
@@ -235,6 +234,9 @@ class JobScheduler extends EventEmitter {
       this.logStructuredError(jobId, errorDetails);
       
     } finally {
+      // Clear the timeout on failure too; otherwise every failed job leaves
+      // a live timer (5 minutes by default) that keeps the process running
+      clearTimeout(timeoutHandle);
       this.runningJobs.delete(jobId);
     }
   }
@@ -392,29 +394,37 @@ class JobScheduler extends EventEmitter {
     
     // Wait for running jobs to complete
     this.shutdownPromise = new Promise((resolve) => {
+      let checkTimer = null;
+      let forceTimer = null;
+      const finish = () => {
+        clearTimeout(checkTimer);
+        clearTimeout(forceTimer);
+        resolve();
+      };
+      
       const checkRunningJobs = () => {
         if (this.runningJobs.size === 0) {
           this.emit('shutdownCompleted');
-          resolve();
+          finish();
           return;
         }
         
         // Check again in 100ms
-        setTimeout(checkRunningJobs, 100);
+        checkTimer = setTimeout(checkRunningJobs, 100);
       };
       
-      // Start checking immediately
-      checkRunningJobs();
-      
       // Force shutdown after timeout
-      setTimeout(() => {
+      forceTimer = setTimeout(() => {
         if (this.runningJobs.size > 0) {
           this.emit('shutdownForced', { 
             runningJobs: Array.from(this.runningJobs) 
           });
         }
-        resolve();
+        finish();
       }, timeout);
+      
+      // Start checking immediately
+      checkRunningJobs();
     });
     
     return this.shutdownPromise;
@@ -539,6 +549,13 @@ class JobScheduler extends EventEmitter {
     
     // Create a copy and remove sensitive fields
     const sanitized = { ...result };
+    
+    // Drop credential-like fields (secrets, tokens, passwords, API keys)
+    for (const key of Object.keys(sanitized)) {
+      if (/secret|token|passw(or)?d|api[-_]?key|credential/i.test(key)) {
+        delete sanitized[key];
+      }
+    }
     
     // Remove potentially sensitive paths
     if (sanitized.outputPath) {

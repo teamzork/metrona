@@ -1144,6 +1144,13 @@ class SchedulerDaemon extends EventEmitter {
     
     const sanitized = { ...data };
     
+    // Drop credential-like fields (secrets, tokens, passwords, API keys)
+    for (const key of Object.keys(sanitized)) {
+      if (/secret|token|passw(or)?d|api[-_]?key|credential/i.test(key)) {
+        delete sanitized[key];
+      }
+    }
+    
     // Remove or sanitize sensitive fields
     if (sanitized.configPath) {
       sanitized.configPath = sanitized.configPath.replace(/\/home\/[^\/]+/, '/home/***');

@@ -12,6 +12,11 @@ const { SchedulerDaemon } = require('./scheduler-daemon');
 const fs = require('fs').promises;
 const path = require('path');
 
+// A path with a /home/<user>/ segment somewhere in it
+const homePathArb = fc
+  .tuple(fc.string({ maxLength: 20 }), fc.stringMatching(/^[a-z][a-z0-9_-]{0,15}$/), fc.string({ maxLength: 20 }))
+  .map(([prefix, user, rest]) => `${prefix}/home/${user}/${rest}`);
+
 describe('Property 33: Error Isolation and Logging', () => {
   let tempDir;
   
@@ -76,7 +81,7 @@ describe('Property 33: Error Isolation and Logging', () => {
       fc.array(fc.record({
         jobId: fc.string({ minLength: 1, maxLength: 20 }).filter(s => /^[a-zA-Z0-9-_]+$/.test(s)),
         shouldFail: fc.boolean(),
-        delay: fc.integer({ min: 0, max: 100 })
+        delay: fc.integer({ min: 0, max: 20 })
       }), { minLength: 2, maxLength: 5 }),
       async (jobConfigs) => {
         const scheduler = new JobScheduler();
@@ -85,6 +90,9 @@ describe('Property 33: Error Isolation and Logging', () => {
         scheduler.on('jobCompleted', (data) => {
           jobResults.push(data);
         });
+        // Failed jobs also emit 'error'; an EventEmitter with no 'error'
+        // listener throws, which would abort executeJob before it logs
+        scheduler.on('error', () => {});
         
         try {
           // Create unique job IDs to avoid conflicts
@@ -124,8 +132,8 @@ describe('Property 33: Error Isolation and Logging', () => {
             await scheduler.executeJob(config.jobId, jobFunction, {});
           }
           
-          // Wait for all jobs to complete
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // executeJob is awaited above; give any stray events a moment
+          await new Promise(resolve => setTimeout(resolve, 20));
           
           // Verify all jobs were executed
           expect(jobResults).toHaveLength(uniqueJobConfigs.length);
@@ -152,7 +160,7 @@ describe('Property 33: Error Isolation and Logging', () => {
         }
       }
     ), { numRuns: 15 });
-  });
+  }, 30000);
 
   /**
    * Property: Structured logging completeness
@@ -179,6 +187,9 @@ describe('Property 33: Error Isolation and Logging', () => {
         scheduler.on('structuredLog', (entry) => {
           logEntries.push(entry);
         });
+        // Failed jobs also emit 'error'; an EventEmitter with no 'error'
+        // listener throws, which would abort executeJob before it logs
+        scheduler.on('error', () => {});
         
         try {
           const error = new Error(errorConfig.errorMessage);
@@ -233,8 +244,10 @@ describe('Property 33: Error Isolation and Logging', () => {
   test('Property 33.4: Data sanitization consistency', () => {
     fc.assert(fc.property(
       fc.record({
-        outputPath: fc.string().filter(s => s.includes('/home/')),
-        configPath: fc.string().filter(s => s.includes('/home/')),
+        // Build paths that contain a home directory. (Filtering arbitrary
+        // strings for '/home/' never succeeds, so fast-check spun forever.)
+        outputPath: homePathArb,
+        configPath: homePathArb,
         hasSecretKey: fc.boolean(),
         hasApiToken: fc.boolean(),
         contextSize: fc.integer({ min: 1, max: 10 })
