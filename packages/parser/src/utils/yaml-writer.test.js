@@ -338,6 +338,14 @@ describe('YamlDatasetWriter', () => {
       let backupFiles = files.filter(file => file.includes('.backup.'));
       expect(backupFiles.length).toBeGreaterThan(0);
 
+      // Backdate the backups: with maxAge 0 a file only counts as "old" once
+      // its mtime is strictly in the past, and a backup written in the same
+      // millisecond as the cleanup was kept (flaky 2 vs 3)
+      const past = new Date(Date.now() - 60 * 1000);
+      for (const file of backupFiles) {
+        await fs.utimes(path.join(testOutputDir, file), past, past);
+      }
+
       // Clean up backups (use 0 days to clean all)
       const cleanedCount = await writer.cleanupBackups(0);
       expect(cleanedCount).toBe(backupFiles.length);
