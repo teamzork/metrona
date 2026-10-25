@@ -24,6 +24,14 @@ jest.mock('fs', () => ({
   }
 }));
 
+// Reset fs mocks before every fast-check iteration (not just every test):
+// call counts and one-off implementations otherwise leak between iterations.
+// Listing the backup dir (done by createBackup's cleanup step) sees no files.
+const freshMocks = () => {
+  jest.resetAllMocks();
+  fs.readdir.mockResolvedValue([]);
+};
+
 describe('Property 12: Backup Creation Reliability', () => {
   let backupManager;
 
@@ -41,8 +49,8 @@ describe('Property 12: Backup Creation Reliability', () => {
    * Property: Backup creation should always succeed for valid file content
    * For any valid file content, backup creation should complete successfully and create all required files
    */
-  it('should reliably create backups for any valid file content', () => {
-    fc.assert(fc.property(
+  it('should reliably create backups for any valid file content', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         filePath: fc.constantFrom(
           '/etc/analytics/config.yaml',
@@ -104,15 +112,15 @@ describe('Property 12: Backup Creation Reliability', () => {
         expect(fs.chmod).toHaveBeenCalledWith(backupPath, 0o600);
         expect(fs.chmod).toHaveBeenCalledWith(expect.stringMatching(/\.meta$/), 0o600);
       }
-    ), { numRuns: 100 });
+    ).beforeEach(freshMocks), { numRuns: 100 });
   });
 
   /**
    * Property: Backup metadata should always contain required fields
    * For any backup creation, metadata should include all essential information
    */
-  it('should create complete metadata for all backups', () => {
-    fc.assert(fc.property(
+  it('should create complete metadata for all backups', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         filePath: fc.string({ minLength: 1, maxLength: 100 }).filter(s => s.startsWith('/')),
         content: fc.stringOf(fc.char(), { minLength: 0, maxLength: 500 }),
@@ -158,15 +166,15 @@ describe('Property 12: Backup Creation Reliability', () => {
           expect(metadataContent.userId).toBe(customMetadata.userId);
         }
       }
-    ), { numRuns: 50 });
+    ).beforeEach(freshMocks), { numRuns: 50 });
   });
 
   /**
    * Property: Backup checksums should be consistent and verifiable
    * For any file content, the checksum should be deterministic and verifiable
    */
-  it('should generate consistent and verifiable checksums', () => {
-    fc.assert(fc.property(
+  it('should generate consistent and verifiable checksums', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.stringOf(fc.char(), { minLength: 0, maxLength: 1000 }),
       async (content) => {
         const filePath = '/test/file.yaml';
@@ -199,15 +207,15 @@ describe('Property 12: Backup Creation Reliability', () => {
         const expectedChecksum = crypto.createHash('sha256').update(content, 'utf8').digest('hex');
         expect(metadata1.checksum).toBe(expectedChecksum);
       }
-    ), { numRuns: 50 });
+    ).beforeEach(freshMocks), { numRuns: 50 });
   });
 
   /**
    * Property: Backup restoration should preserve file content exactly
    * For any backed up content, restoration should produce identical content
    */
-  it('should preserve content exactly through backup and restore cycle', () => {
-    fc.assert(fc.property(
+  it('should preserve content exactly through backup and restore cycle', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         originalContent: fc.stringOf(fc.char(), { minLength: 0, maxLength: 500 }),
         filePath: fc.constantFrom('/test/config.yaml', '/etc/analytics.yaml')
@@ -247,15 +255,15 @@ describe('Property 12: Backup Creation Reliability', () => {
         );
         expect(restoreCall).toBeDefined();
       }
-    ), { numRuns: 50 });
+    ).beforeEach(freshMocks), { numRuns: 50 });
   });
 
   /**
    * Property: Backup operations should handle concurrent access safely
    * For any sequence of backup operations, each should complete independently
    */
-  it('should handle multiple backup operations safely', () => {
-    fc.assert(fc.property(
+  it('should handle multiple backup operations safely', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.array(
         fc.record({
           filePath: fc.constantFrom('/test/config1.yaml', '/test/config2.yaml', '/test/config3.yaml'),
@@ -296,7 +304,7 @@ describe('Property 12: Backup Creation Reliability', () => {
         expect(fs.writeFile).toHaveBeenCalledTimes(backupOperations.length * 2); // backup + metadata files
         expect(fs.chmod).toHaveBeenCalledTimes(backupOperations.length * 2); // backup + metadata permissions
       }
-    ), { numRuns: 30 });
+    ).beforeEach(freshMocks), { numRuns: 30 });
   });
 });
 
@@ -322,8 +330,8 @@ describe('Property 30: File Security Permissions', () => {
    * Property: All sensitive files should have secure permissions (0o600)
    * For any sensitive file created by the system, permissions should be 0o600 or more restrictive
    */
-  it('should set secure permissions on all sensitive files', () => {
-    fc.assert(fc.property(
+  it('should set secure permissions on all sensitive files', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         fileType: fc.constantFrom('config', 'backup', 'metadata'),
         content: fc.stringOf(fc.char(), { minLength: 0, maxLength: 500 }),
@@ -371,15 +379,15 @@ describe('Property 30: File Security Permissions', () => {
           expect(metadataPermissionCall).toBeDefined();
         }
       }
-    ), { numRuns: 50 });
+    ).beforeEach(freshMocks), { numRuns: 50 });
   });
 
   /**
    * Property: Permission verification should correctly identify secure and insecure files
    * For any file permission mode, verification should accurately determine security level
    */
-  it('should correctly verify file permission security', () => {
-    fc.assert(fc.property(
+  it('should correctly verify file permission security', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         // Generate various permission modes
         ownerPerms: fc.constantFrom(0o000, 0o200, 0o400, 0o600, 0o700), // Owner permissions
@@ -401,15 +409,15 @@ describe('Property 30: File Security Permissions', () => {
         
         expect(isSecure).toBe(expectedSecure);
       }
-    ), { numRuns: 100 });
+    ).beforeEach(freshMocks), { numRuns: 100 });
   });
 
   /**
    * Property: Secure permission setting should be idempotent
    * For any file, setting secure permissions multiple times should be safe and consistent
    */
-  it('should safely set secure permissions multiple times', () => {
-    fc.assert(fc.property(
+  it('should safely set secure permissions multiple times', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         filePath: fc.string({ minLength: 1, maxLength: 50 }).filter(s => s.startsWith('/')),
         iterations: fc.integer({ min: 1, max: 5 })
@@ -429,15 +437,15 @@ describe('Property 30: File Security Permissions', () => {
           expect(fs.chmod).toHaveBeenNthCalledWith(i + 1, filePath, 0o600);
         }
       }
-    ), { numRuns: 30 });
+    ).beforeEach(freshMocks), { numRuns: 30 });
   });
 
   /**
    * Property: Configuration security verification should detect all permission issues
    * For any configuration setup, security verification should accurately report the security status
    */
-  it('should accurately verify configuration security status', () => {
-    fc.assert(fc.property(
+  it('should accurately verify configuration security status', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         configFileMode: fc.constantFrom(0o100600, 0o100644, 0o100755, 0o100400), // Various config file permissions
         backupDirMode: fc.constantFrom(0o040700, 0o040755, 0o040750, 0o040000),  // Various directory permissions
@@ -481,15 +489,15 @@ describe('Property 30: File Security Permissions', () => {
           expect(security.backupDirectory.secure).toBe(backupDirSecure);
         }
       }
-    ), { numRuns: 50 });
+    ).beforeEach(freshMocks), { numRuns: 50 });
   });
 
   /**
    * Property: Backup directory creation should have secure permissions
    * For any backup directory creation, the directory should be created with secure permissions
    */
-  it('should create backup directories with secure permissions', () => {
-    fc.assert(fc.property(
+  it('should create backup directories with secure permissions', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         backupDir: fc.constantFrom(
           '/var/analytics/backups',
@@ -521,15 +529,15 @@ describe('Property 30: File Security Permissions', () => {
         // Verify files in backup directory have secure permissions
         expect(fs.chmod).toHaveBeenCalledWith(expect.stringMatching(new RegExp(backupDir)), 0o600);
       }
-    ), { numRuns: 30 });
+    ).beforeEach(freshMocks), { numRuns: 30 });
   });
 
   /**
    * Property: Permission inheritance should be consistent across all backup operations
    * For any backup manager configuration, all created files should inherit the same secure permissions
    */
-  it('should consistently apply permissions across all backup operations', () => {
-    fc.assert(fc.property(
+  it('should consistently apply permissions across all backup operations', async () => {
+    await fc.assert(fc.asyncProperty(
       fc.record({
         customPermissions: fc.constantFrom(0o600, 0o400, 0o200), // Various secure permission levels
         operations: fc.array(
@@ -569,6 +577,6 @@ describe('Property 30: File Security Permissions', () => {
           expect(call[1]).toBe(customPermissions);
         }
       }
-    ), { numRuns: 30 });
+    ).beforeEach(freshMocks), { numRuns: 30 });
   });
 });

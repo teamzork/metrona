@@ -469,7 +469,7 @@ class SchedulerDaemon extends EventEmitter {
         throw new Error(`${context}: contentRanking must be an object`);
       }
       
-      if (parserOptions.contentRanking.excludePatterns) {
+      if (parserOptions.contentRanking.excludePatterns !== undefined) {
         if (!Array.isArray(parserOptions.contentRanking.excludePatterns)) {
           throw new Error(`${context}: contentRanking.excludePatterns must be an array`);
         }

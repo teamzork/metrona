@@ -579,7 +579,7 @@ class ConfigurationManager {
         throw new Error('contentRanking must be an object');
       }
       
-      if (parserOptions.contentRanking.excludePatterns) {
+      if (parserOptions.contentRanking.excludePatterns !== undefined) {
         if (!Array.isArray(parserOptions.contentRanking.excludePatterns)) {
           throw new Error('excludePatterns must be an array');
         }
@@ -743,48 +743,35 @@ class ConfigurationManager {
    * @returns {Promise<Object>} Security verification results
    */
   async verifyConfigurationSecurity() {
+    // Check the config file and the backup directory independently, so a
+    // missing config file doesn't hide the backup directory's status
+    const configurationFile = { path: this.configPath, secure: false, exists: false };
     try {
-      const configSecure = await this.backupManager.verifySecurePermissions(this.configPath);
-      
-      // Check backup directory permissions
-      let backupDirSecure = false;
-      try {
-        await fs.access(this.backupDir);
-        const stats = await fs.stat(this.backupDir);
-        const mode = stats.mode & parseInt('777', 8);
-        backupDirSecure = (mode & parseInt('077', 8)) === 0; // No group/other permissions
-      } catch (error) {
-        // Backup directory doesn't exist yet
-        backupDirSecure = true;
-      }
-      
-      return {
-        configurationFile: {
-          path: this.configPath,
-          secure: configSecure,
-          exists: true
-        },
-        backupDirectory: {
-          path: this.backupDir,
-          secure: backupDirSecure
-        }
-      };
-      
+      configurationFile.secure = await this.backupManager.verifySecurePermissions(this.configPath);
+      configurationFile.exists = true;
     } catch (error) {
-      return {
-        configurationFile: {
-          path: this.configPath,
-          secure: false,
-          exists: false,
-          error: error.message
-        },
-        backupDirectory: {
-          path: this.backupDir,
-          secure: false,
-          error: 'Could not verify'
-        }
-      };
+      configurationFile.error = error.message;
     }
+    
+    // Check backup directory permissions
+    let backupDirSecure = false;
+    try {
+      await fs.access(this.backupDir);
+      const stats = await fs.stat(this.backupDir);
+      const mode = stats.mode & parseInt('777', 8);
+      backupDirSecure = (mode & parseInt('077', 8)) === 0; // No group/other permissions
+    } catch (error) {
+      // Backup directory doesn't exist yet
+      backupDirSecure = true;
+    }
+    
+    return {
+      configurationFile,
+      backupDirectory: {
+        path: this.backupDir,
+        secure: backupDirSecure
+      }
+    };
   }
 
   /**

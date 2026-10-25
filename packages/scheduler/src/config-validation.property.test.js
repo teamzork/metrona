@@ -244,7 +244,7 @@ describe('Property 9: Comprehensive Input Validation', () => {
             contentRanking: fc.record({
               excludePatterns: fc.oneof(
                 fc.constant('not-array'),     // Not an array
-                fc.array(fc.integer()),       // Array of non-strings
+                fc.array(fc.integer(), { minLength: 1 }), // Array of non-strings (an empty array is valid)
                 fc.constant(null)             // Null
               )
             })
