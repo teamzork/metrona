@@ -27,7 +27,7 @@ describe('AuthManager', () => {
   describe('Password Validation', () => {
     test('should accept valid strong password', () => {
       expect(() => {
-        authManager.validatePassword('StrongPass123!');
+        authManager.validatePassword('StrongPass947!');
       }).not.toThrow();
     });
 
@@ -52,7 +52,7 @@ describe('AuthManager', () => {
 
     test('should reject password with repeated characters', () => {
       expect(() => {
-        authManager.validatePassword('Passsss123!');
+        authManager.validatePassword('Passsss947!');
       }).toThrow('Password cannot contain repeated characters');
     });
 
@@ -71,7 +71,7 @@ describe('AuthManager', () => {
 
   describe('Password Hashing', () => {
     test('should hash password successfully', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const hash = await authManager.hashPassword(password);
       
       expect(hash).toBeDefined();
@@ -80,7 +80,7 @@ describe('AuthManager', () => {
     });
 
     test('should generate different hashes for same password', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const hash1 = await authManager.hashPassword(password);
       const hash2 = await authManager.hashPassword(password);
       
@@ -88,7 +88,7 @@ describe('AuthManager', () => {
     });
 
     test('should verify password against hash', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const hash = await authManager.hashPassword(password);
       
       const isValid = await authManager.verifyPassword(password, hash);
@@ -96,8 +96,8 @@ describe('AuthManager', () => {
     });
 
     test('should reject incorrect password', async () => {
-      const password = 'TestPass123!';
-      const wrongPassword = 'WrongPass123!';
+      const password = 'TestPass947!';
+      const wrongPassword = 'WrongPass947!';
       const hash = await authManager.hashPassword(password);
       
       const isValid = await authManager.verifyPassword(wrongPassword, hash);
@@ -107,7 +107,7 @@ describe('AuthManager', () => {
 
   describe('Authentication Configuration', () => {
     test('should generate auth config with defaults', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const config = await authManager.generateAuthConfig(password);
       
       expect(config).toMatchObject({
@@ -124,7 +124,7 @@ describe('AuthManager', () => {
     });
 
     test('should generate auth config with custom options', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const options = {
         sessionTimeout: 7200,
         maxLoginAttempts: 3,
@@ -146,7 +146,7 @@ describe('AuthManager', () => {
     });
 
     test('should save and load auth config', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const config = await authManager.generateAuthConfig(password);
       const configPath = path.join(tempDir, 'auth.json');
       
@@ -171,7 +171,7 @@ describe('AuthManager', () => {
 
   describe('Password Updates', () => {
     test('should update password successfully', async () => {
-      const oldPassword = 'OldPass123!';
+      const oldPassword = 'OldPass947!';
       const newPassword = 'NewPass456@';
       const configPath = path.join(tempDir, 'auth.json');
       
@@ -193,7 +193,7 @@ describe('AuthManager', () => {
     });
 
     test('should reject password update with wrong current password', async () => {
-      const oldPassword = 'OldPass123!';
+      const oldPassword = 'OldPass947!';
       const newPassword = 'NewPass456@';
       const wrongPassword = 'WrongPass789#';
       const configPath = path.join(tempDir, 'auth.json');
@@ -234,7 +234,7 @@ describe('AuthManager', () => {
 
   describe('Authentication Status', () => {
     test('should return configured status for existing config', async () => {
-      const password = 'TestPass123!';
+      const password = 'TestPass947!';
       const config = await authManager.generateAuthConfig(password);
       const configPath = path.join(tempDir, 'auth.json');
       

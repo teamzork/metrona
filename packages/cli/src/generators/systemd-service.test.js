@@ -176,7 +176,9 @@ describe('SystemdServiceGenerator', () => {
       expect(backupContent).toBe(originalContent);
     });
 
-    test('should rollback on write failure', async () => {
+    // root ignores directory permission bits, so the write can't be forced to fail
+    const testUnlessRoot = process.getuid && process.getuid() === 0 ? test.skip : test;
+    testUnlessRoot('should rollback on write failure', async () => {
       const config = {
         outputDir: '/opt/analytics',
         configPath: '/etc/analytics/config.yaml'
@@ -193,14 +195,15 @@ describe('SystemdServiceGenerator', () => {
       try {
         await expect(generator.writeServiceFileWithRollback(config))
           .rejects.toThrow();
-
-        // Verify original file is still there (rollback occurred)
-        const restoredContent = await fs.readFile(servicePath, 'utf8');
-        expect(restoredContent).toBe(originalContent);
       } finally {
-        // Restore permissions for cleanup
+        // Restore permissions first: without the execute bit the directory
+        // can't be traversed, so the file couldn't be read back (EACCES)
         await fs.chmod(tempDir, 0o755);
       }
+
+      // Verify original file is still there (rollback occurred)
+      const restoredContent = await fs.readFile(servicePath, 'utf8');
+      expect(restoredContent).toBe(originalContent);
     });
   });
 
