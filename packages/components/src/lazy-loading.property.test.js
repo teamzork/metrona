@@ -92,7 +92,7 @@ describe('Lazy Loading Property Tests', () => {
             dataUrl: fc.webUrl(),
             isVisible: fc.boolean()
           }), { minLength: 1, maxLength: 5 }),
-          threshold: fc.float({ min: 0, max: 1 })
+          threshold: fc.float({ min: 0, max: 1, noNaN: true }) // NaN is not a valid IntersectionObserver threshold
         }),
         (testConfig) => {
           const { components, threshold } = testConfig;

@@ -9,6 +9,16 @@ const { ServerDashboard } = require('./server-dashboard');
 const bcrypt = require('bcryptjs');
 const request = require('supertest');
 
+// Every property iteration (including fast-check's shrink re-runs) needs an
+// IP the rate limiter hasn't seen in this window. IPs derived from the
+// generated suffix could repeat, so an iteration inherited earlier attempts
+// and got 429 where 401 was expected.
+let ipCounter = 0;
+const nextTestIP = (prefix) => {
+  ipCounter++;
+  return `${prefix}.${Math.floor(ipCounter / 250)}.${(ipCounter % 250) + 1}`;
+};
+
 describe('Authentication Rate Limiting Property Tests', () => {
   let dashboard;
   const testPassword = 'test-password-123';
@@ -60,7 +70,7 @@ describe('Authentication Rate Limiting Property Tests', () => {
           let rateLimitTriggered = false;
           let requestCount = 0;
           const maxRequests = dashboard.rateLimit + 3; // Try a few more than the limit
-          const testIP = `10.0.${Math.floor(ipSuffix / 100)}.${ipSuffix % 100}`; // More unique IP generation
+          const testIP = nextTestIP('10.0');
           
           // Make consecutive failed login attempts with small delays to ensure they're in the same window
           for (let i = 0; i < maxRequests; i++) {
@@ -115,7 +125,7 @@ describe('Authentication Rate Limiting Property Tests', () => {
           fc.integer({ min: 200, max: 254 }) // Generate unique IP suffix
         ),
         async ([numFailedAttempts, ipSuffix]) => {
-          const testIP = `192.168.2.${ipSuffix}`; // Use different subnet to avoid conflicts
+          const testIP = nextTestIP('10.2');
           
           // Make some failed attempts (but stay under limit)
           for (let i = 0; i < numFailedAttempts; i++) {
@@ -163,7 +173,7 @@ describe('Authentication Rate Limiting Property Tests', () => {
           fc.integer({ min: 100, max: 199 }) // Generate unique IP suffix
         ),
         async ([numRequests, ipSuffix]) => {
-          const testIP = `192.168.3.${ipSuffix}`; // Use different subnet
+          const testIP = nextTestIP('10.3');
           
           // Make multiple requests to health endpoint (non-auth)
           for (let i = 0; i < numRequests; i++) {

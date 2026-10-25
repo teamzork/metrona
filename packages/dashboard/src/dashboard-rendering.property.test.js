@@ -57,14 +57,14 @@ describe('Dashboard Rendering Property Tests', () => {
               path: fc.webPath(),
               pageviews: fc.nat({ max: 10000 }),
               unique_visitors: fc.nat({ max: 5000 }),
-              percentage: fc.float({ min: 0, max: 100 })
+              percentage: fc.float({ min: 0, max: 100, noNaN: true })
             }), { minLength: 0, maxLength: 20 }),
             referrers: fc.record({
               by_domain: fc.array(fc.record({
                 domain: fc.domain(),
                 visits: fc.nat({ max: 5000 }),
                 unique_visitors: fc.nat({ max: 2500 }),
-                percentage: fc.float({ min: 0, max: 100 })
+                percentage: fc.float({ min: 0, max: 100, noNaN: true })
               }), { minLength: 0, maxLength: 15 })
             }),
             time_series: fc.record({

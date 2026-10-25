@@ -138,7 +138,7 @@ describe('Dashboard Date Filtering and Export Property Tests', () => {
               path: fc.webPath(),
               pageviews: fc.integer({ min: 1, max: 10000 }),
               unique_visitors: fc.integer({ min: 1, max: 5000 }),
-              percentage: fc.float({ min: Math.fround(0.1), max: Math.fround(100.0) })
+              percentage: fc.float({ min: Math.fround(0.1), max: Math.fround(100.0), noNaN: true })
             }),
             { maxLength: 20 }
           ),
@@ -148,7 +148,7 @@ describe('Dashboard Date Filtering and Export Property Tests', () => {
                 domain: fc.domain(),
                 visits: fc.integer({ min: 1, max: 10000 }),
                 unique_visitors: fc.integer({ min: 1, max: 5000 }),
-                percentage: fc.float({ min: Math.fround(0.1), max: Math.fround(100.0) })
+                percentage: fc.float({ min: Math.fround(0.1), max: Math.fround(100.0), noNaN: true })
               }),
               { maxLength: 15 }
             )
@@ -284,7 +284,7 @@ describe('Dashboard Date Filtering and Export Property Tests', () => {
             path: fc.webPath(),
             pageviews: fc.integer({ min: 1, max: 10000 }),
             unique_visitors: fc.integer({ min: 1, max: 5000 }),
-            percentage: fc.float({ min: Math.fround(0.1), max: Math.fround(100.0) })
+            percentage: fc.float({ min: Math.fround(0.1), max: Math.fround(100.0), noNaN: true })
           }),
           { minLength: 1, maxLength: 10 }
         ),
