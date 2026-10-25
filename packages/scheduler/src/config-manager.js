@@ -425,6 +425,10 @@ class ConfigurationManager {
       throw new Error(`Site format must be 'nginx' or 'caddy', got '${site.format}'`);
     }
     
+    if (site.rotationNaming !== undefined && !['suffix', 'caddy'].includes(site.rotationNaming)) {
+      throw new Error(`Site rotationNaming must be 'suffix' or 'caddy', got '${site.rotationNaming}'`);
+    }
+    
     if (site.aliases !== undefined) {
       if (!Array.isArray(site.aliases) || !site.aliases.every(a => typeof a === 'string' && this.validateDomainName(a))) {
         throw new Error('Site aliases must be a list of domain names');

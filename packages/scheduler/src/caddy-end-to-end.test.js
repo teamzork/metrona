@@ -96,6 +96,25 @@ describe('Caddy end to end', () => {
     expect(data.summary.total_pageviews).toBe(4);
   });
 
+  test('reads an nginx log whose rolled files are dated, with rotationNaming: caddy', async () => {
+    const logPath = path.join(dir, 'dimka.log');
+    const line = (day, ip, uri) => `${ip} - - [${day}/Oct/2026:15:00:00 +0000] "GET ${uri} HTTP/1.1" 200 512 "-" "${BROWSER}"`;
+    await fs.writeFile(path.join(dir, 'dimka-2026-10-04T00-00-00.000.log'), line('04', '203.0.113.7', '/') + '\n');
+    await fs.writeFile(path.join(dir, 'dimka-2026-10-05T00-00-00.000.log'), line('05', '203.0.113.7', '/blog') + '\n');
+    await fs.writeFile(logPath, line('06', '198.51.100.1', '/movies') + '\n');
+
+    const dashboardDataDir = path.join(dir, 'dashboard');
+    await fs.mkdir(path.join(dir, 'datasets'));
+    const executor = new JobExecutor({ outputDir: path.join(dir, 'datasets'), dashboardDataDir, salt: 'test-salt' });
+    const site = { siteId: 'dimka', siteName: 'dimka.com', domain: 'dimka.com', logPath, format: 'nginx', rotationNaming: 'caddy' };
+    const result = await executor.createSiteProcessingJob(site)();
+    expect(result.success).toBe(true);
+
+    const view = yaml.load(await fs.readFile(path.join(dashboardDataDir, 'dimka.yaml'), 'utf8'));
+    expect(view.summary.total_pageviews).toBe(3);
+    expect(view.time_series.daily.map((d) => d.date)).toEqual(['2026-10-04', '2026-10-05', '2026-10-06']);
+  });
+
   test('rejects an unknown log format', () => {
     const executor = new JobExecutor({ outputDir: dir });
     expect(() => executor.createSiteProcessingJob({ siteId: 'x', siteName: 'X', domain: 'x.example.com', logPath: '/tmp/x.log', format: 'apache' })).toThrow(/Unsupported log format/);

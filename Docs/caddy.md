@@ -38,6 +38,11 @@ Both read the same config file: start from `templates/config/metrona.yaml.exampl
   `/r/:token`. Better still, `log_skip` them in Caddy so the tokens never reach the disk.
 - `hosts: [a.example.com]` — when several hosts share one log file, count only these.
 
+Beside `parserOptions`, a site can set `rotationNaming`: `caddy` (dated files such as
+`site-2026-10-05T04-00-00.000.log` beside `site.log`) or `suffix` (logrotate's `.1`, `.gz`). It
+defaults to the format's own, so it is only needed when something else rolls the log — for
+example an nginx log that zwatch receives and rolls daily into dated files.
+
 ## Privacy notes
 
 Caddy's log files hold raw IPs, user agents, and full URLs (Caddy redacts `Cookie` and

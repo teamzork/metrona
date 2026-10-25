@@ -59,6 +59,8 @@ class JobExecutor {
    * @param {Object} [siteConfig.parserOptions] - Additional parser options
    * @param {string} [siteConfig.format='nginx'] - Log format: 'nginx' (combined) or 'caddy' (JSON)
    * @param {string[]} [siteConfig.aliases] - Other hostnames of the site, never counted as referrers
+   * @param {string} [siteConfig.rotationNaming] - How rolled log files are named: 'suffix' (logrotate) or
+   *   'caddy' (dated files beside the live log). Defaults to the format's own: caddy for caddy, else suffix
    * @returns {Function} Job function that can be scheduled
    */
   createSiteProcessingJob(siteConfig) {
@@ -85,7 +87,7 @@ class JobExecutor {
           logReader = new LogFileReader(siteConfig.logPath, {
             lastPosition: lastPosition,
             maxMemoryMB: context.maxMemoryMB || 100,
-            rotationNaming: siteConfig.format === 'caddy' ? 'caddy' : 'suffix'
+            rotationNaming: siteConfig.rotationNaming || (siteConfig.format === 'caddy' ? 'caddy' : 'suffix')
           });
         } catch (readerError) {
           throw new Error(`Failed to initialize log reader for ${siteId}: ${readerError.message}`);

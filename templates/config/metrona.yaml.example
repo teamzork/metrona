@@ -10,6 +10,8 @@ sites:
     aliases: [dev.example.com]          # other names of the site: never counted as referrers
     logPath: /var/log/caddy/hairdesign.log
     format: caddy                       # caddy (JSON) or nginx (combined)
+    # rotationNaming: suffix            # rolled files: suffix (logrotate's .1, .gz) or caddy (dated
+    #                                   # files beside the log). Defaults to the format's own
     schedule: hourly                    # hourly, daily, or a cron expression
     timezone: America/Los_Angeles       # label only: days are UTC days for now
     parserOptions:
