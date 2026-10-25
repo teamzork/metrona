@@ -13,6 +13,10 @@ const { LogFileReader, discoverLogFiles } = require('./log-file-reader');
 
 describe('LogFileReader Discovery Property Tests', () => {
   let tempDir;
+  // Property iterations share tempDir and can run within the same millisecond,
+  // so Date.now() alone collided and leftover files from a previous iteration
+  // were "discovered". A counter keeps every iteration's log path unique.
+  let runCounter = 0;
 
   beforeEach(async () => {
     // Create unique temp directory for each test
@@ -61,7 +65,7 @@ describe('LogFileReader Discovery Property Tests', () => {
           }),
           
           async ({ hasMainFile, hasRotated1, hasRotated2, hasRotated3, hasCompressed, mainFileSize, rotatedFileSize }) => {
-            const logPath = path.join(tempDir, `access-${Date.now()}.log`);
+            const logPath = path.join(tempDir, `access-${Date.now()}-${++runCounter}.log`);
             const expectedFiles = [];
             
             // Create main log file if specified
@@ -196,7 +200,7 @@ describe('LogFileReader Discovery Property Tests', () => {
               actualCreateMask.push(false);
             }
             
-            const logPath = path.join(tempDir, `custom-${Date.now()}.log`);
+            const logPath = path.join(tempDir, `custom-${Date.now()}-${++runCounter}.log`);
             const expectedFiles = [];
             
             // Create main file
@@ -277,7 +281,7 @@ describe('LogFileReader Discovery Property Tests', () => {
           }),
           
           async ({ hasMain, hasRotated1, hasRotated2, hasGzipped }) => {
-            const logPath = path.join(tempDir, `test-${Date.now()}.log`);
+            const logPath = path.join(tempDir, `test-${Date.now()}-${++runCounter}.log`);
             let expectedCount = 0;
             
             // Create only the files that should exist
@@ -376,7 +380,7 @@ describe('LogFileReader Discovery Property Tests', () => {
           }),
           
           async ({ filePattern }) => {
-            const logPath = path.join(tempDir, `consistency-${Date.now()}.log`);
+            const logPath = path.join(tempDir, `consistency-${Date.now()}-${++runCounter}.log`);
             
             // Create files based on pattern
             if (filePattern.hasMain) {
@@ -441,7 +445,7 @@ describe('LogFileReader Discovery Property Tests', () => {
           }),
           
           async ({ mainSize, rotatedSize, compressedContentSize }) => {
-            const logPath = path.join(tempDir, `sizes-${Date.now()}.log`);
+            const logPath = path.join(tempDir, `sizes-${Date.now()}-${++runCounter}.log`);
             const expectedSizes = [];
             
             // Create main file with specific size
