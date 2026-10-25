@@ -14,7 +14,11 @@ jest.mock('fs', () => ({
     readFile: jest.fn(),
     writeFile: jest.fn(),
     mkdir: jest.fn(),
-    stat: jest.fn()
+    stat: jest.fn(),
+    // Used by BackupManager (secure permissions, backup listing/cleanup)
+    chmod: jest.fn(),
+    readdir: jest.fn(),
+    unlink: jest.fn()
   }
 }));
 
@@ -25,6 +29,9 @@ describe('ConfigurationManager', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    fs.chmod.mockResolvedValue();
+    fs.readdir.mockResolvedValue([]);
+    fs.unlink.mockResolvedValue();
     
     mockConfigPath = '/test/config/analytics.yaml';
     mockBackupDir = '/test/config/backups';
@@ -617,36 +624,6 @@ describe('ConfigurationManager', () => {
       invalidSchedules.forEach(schedule => {
         expect(configManager.validateSchedule(schedule)).toBe(false);
       });
-    });
-  });
-
-  describe('createBackup', () => {
-    it('should create backup successfully', async () => {
-      const mockConfigContent = 'version: "1.0"\nsites: []';
-      
-      fs.mkdir.mockResolvedValue();
-      fs.readFile.mockResolvedValue(mockConfigContent);
-      fs.writeFile.mockResolvedValue();
-
-      const backupPath = await configManager.createBackup();
-
-      expect(fs.mkdir).toHaveBeenCalledWith(mockBackupDir, { recursive: true });
-      expect(fs.readFile).toHaveBeenCalledWith(mockConfigPath, 'utf8');
-      expect(fs.writeFile).toHaveBeenCalledWith(
-        expect.stringMatching(/config-backup-.*\.yaml$/),
-        mockConfigContent,
-        'utf8'
-      );
-      expect(backupPath).toMatch(/config-backup-.*\.yaml$/);
-    });
-
-    it('should throw error when backup creation fails', async () => {
-      fs.mkdir.mockResolvedValue();
-      fs.readFile.mockRejectedValue(new Error('Read failed'));
-
-      await expect(configManager.createBackup()).rejects.toThrow(
-        'Failed to create configuration backup: Read failed'
-      );
     });
   });
 

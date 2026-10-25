@@ -402,6 +402,10 @@ describe('Property 13: Site Processing Conditional Logic', () => {
       jest.spyOn(fs, 'access').mockResolvedValue();
       jest.spyOn(fs, 'mkdir').mockResolvedValue();
       jest.spyOn(fs, 'writeFile').mockResolvedValue();
+      // Saving sets 0600 permissions and backups list the backup dir; keep
+      // both off the real filesystem (/test/... doesn't exist)
+      jest.spyOn(fs, 'chmod').mockResolvedValue();
+      jest.spyOn(fs, 'readdir').mockResolvedValue([]);
       
       let mockConfig = null;
       jest.spyOn(fs, 'readFile').mockImplementation(async () => {

@@ -343,12 +343,14 @@ describe('JobScheduler', () => {
       expect(stats.lastError.message).toBe('Job failed');
       
       // Verify error event was emitted
-      expect(errorHandler).toHaveBeenCalledWith({
+      // (the event also carries errorCategory, duration, context, timestamp)
+      expect(errorHandler).toHaveBeenCalledWith(expect.objectContaining({
         type: 'jobExecutionError',
         jobId: 'test-job',
         error: 'Job failed',
+        errorCategory: 'general_error',
         stack: expect.any(String)
-      });
+      }));
     });
 
     it('should emit jobStarted and jobCompleted events', async () => {

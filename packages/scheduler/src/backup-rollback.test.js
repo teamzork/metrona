@@ -56,12 +56,12 @@ describe('BackupManager', () => {
       expect(fs.mkdir).toHaveBeenCalledWith(mockBackupDir, { recursive: true });
       expect(fs.readFile).toHaveBeenCalledWith(sourceFile, 'utf8');
       expect(fs.writeFile).toHaveBeenCalledWith(
-        expect.stringMatching(/config\.yaml-backup-.*-test$/),
+        expect.stringMatching(/config\.yaml-backup-.*-test-backup$/),
         sourceContent,
         'utf8'
       );
       expect(fs.chmod).toHaveBeenCalledWith(expect.any(String), 0o600);
-      expect(backupPath).toMatch(/config\.yaml-backup-.*-test$/);
+      expect(backupPath).toMatch(/config\.yaml-backup-.*-test-backup$/);
     });
 
     it('should throw error when source file does not exist', async () => {
@@ -279,6 +279,23 @@ describe('BackupManager', () => {
 describe('ConfigurationManager with Backup Integration', () => {
   let configManager;
   let mockConfigPath;
+  let files;
+
+  // Back fs.readFile/writeFile with an in-memory table keyed by path
+  const mockFiles = (initial) => {
+    files = { ...initial };
+    fs.readFile.mockImplementation(async (p) => {
+      if (!(p in files)) {
+        const error = new Error(`ENOENT: no such file, open '${p}'`);
+        error.code = 'ENOENT';
+        throw error;
+      }
+      return files[p];
+    });
+    fs.writeFile.mockImplementation(async (p, content) => {
+      files[p] = content;
+    });
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -354,15 +371,18 @@ describe('ConfigurationManager with Backup Integration', () => {
 
       // Mock listBackups to return available backups
       fs.access.mockResolvedValue();
-      fs.readdir.mockResolvedValue(['config-backup-123.yaml.meta']);
-      fs.readFile
-        .mockResolvedValueOnce(JSON.stringify(backupMetadata)) // listBackups metadata
-        .mockResolvedValueOnce('current config') // current file for pre-rollback backup
-        .mockResolvedValueOnce(JSON.stringify(backupMetadata)) // restore metadata
-        .mockResolvedValueOnce(backupContent) // backup content
-        .mockResolvedValueOnce(backupContent); // loadConfiguration after restore
+      fs.readdir.mockImplementation(async () =>
+        Object.keys(files).filter(f => f.endsWith('.meta')).map(f => path.basename(f))
+      );
+      // Serve reads by path from an in-memory file table that writes update.
+      // (A call-order queue breaks because createBackup also lists backups
+      // during its cleanup step, consuming extra reads.)
+      mockFiles({
+        [`${backupMetadata.backupPath}.meta`]: JSON.stringify(backupMetadata),
+        [backupMetadata.backupPath]: backupContent,
+        [mockConfigPath]: 'current config'
+      });
       fs.mkdir.mockResolvedValue();
-      fs.writeFile.mockResolvedValue();
       fs.chmod.mockResolvedValue();
 
       const restoredConfig = await configManager.rollbackConfiguration();
@@ -381,15 +401,18 @@ describe('ConfigurationManager with Backup Integration', () => {
       };
 
       fs.access.mockResolvedValue();
-      fs.readdir.mockResolvedValue(['config-backup-123.yaml.meta']);
-      fs.readFile
-        .mockResolvedValueOnce(JSON.stringify(backupMetadata)) // listBackups
-        .mockResolvedValueOnce('current config') // current file
-        .mockResolvedValueOnce(JSON.stringify(backupMetadata)) // restore metadata
-        .mockResolvedValueOnce(backupContent) // backup content
-        .mockResolvedValueOnce(backupContent); // loadConfiguration
+      fs.readdir.mockImplementation(async () =>
+        Object.keys(files).filter(f => f.endsWith('.meta')).map(f => path.basename(f))
+      );
+      // Serve reads by path from an in-memory file table that writes update.
+      // (A call-order queue breaks because createBackup also lists backups
+      // during its cleanup step, consuming extra reads.)
+      mockFiles({
+        [`${backupMetadata.backupPath}.meta`]: JSON.stringify(backupMetadata),
+        [backupMetadata.backupPath]: backupContent,
+        [mockConfigPath]: 'current config'
+      });
       fs.mkdir.mockResolvedValue();
-      fs.writeFile.mockResolvedValue();
       fs.chmod.mockResolvedValue();
 
       await configManager.rollbackConfiguration();
@@ -444,7 +467,8 @@ describe('ConfigurationManager with Backup Integration', () => {
       const oldBackups = Array.from({ length: 8 }, (_, i) => ({
         originalPath: mockConfigPath,
         backupPath: `/test/backups/config-backup-${i}.yaml`,
-        timestamp: new Date(2026, 0, i + 1).toISOString(),
+        // Recent (i days ago) so only the keep limit, not maxAge, applies
+        timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
         fileSize: 100
       }));
 
