@@ -246,8 +246,9 @@ describe('ServerDashboard', () => {
       expect(html).toContain('<!DOCTYPE html>');
       expect(html).toContain('test.example.com');
       expect(html).toContain('1,000'); // Formatted pageviews
-      expect(html).toContain('window.siteId = \'test-site\'');
-      expect(html).toContain('window.isServerMode = true');
+      expect(html).toContain('role="tablist"');
+      expect(html).toContain('<script src="/static/site.js" defer></script>');
+      expect(html).toContain('id="metrona-data"');
     });
   });
 

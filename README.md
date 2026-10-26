@@ -8,7 +8,7 @@
 access logs and shows each site's pageviews, visitors, top pages, referrers, and daily trends. It
 adds no tracking script and no cookies to your pages, and it uses no third-party service.
 
-![The Metrona dashboard for one site: totals, top pages, referrers and a 30-day trend](Docs/images/site.png)
+![The Metrona dashboard for one site: what happened in a sentence, the totals, what people read and how they found the site](Docs/images/site.png)
 
 ## Why Metrona
 
@@ -30,7 +30,7 @@ adds no tracking script and no cookies to your pages, and it uses no third-party
 | All sites at a glance | One site in depth |
 | --- | --- |
 | ![All sites](Docs/images/all-sites.png) | ![One site](Docs/images/site.png) |
-| Pageviews, visitors and the top page of each site | Date ranges, top pages, referrers, a 30-day trend, CSV exports |
+| Pageviews, visitors and the top page of each site | Two tabs: a summary in plain words, and a report with a calendar and tables; CSV downloads |
 
 Running a site and want to know how to read these numbers? See the
 **[user guide](Docs/user-guide.md)**. It's written for site owners, not server admins.

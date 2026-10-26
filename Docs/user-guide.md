@@ -37,27 +37,51 @@ Click a site's card to open its own page.
 
 ## One site in detail
 
-![One site's page](images/site.png)
+A site's page has two tabs: **Summary** for the quick look, and **Report** for the figures.
 
-**Date range** (top left) chooses the period you're looking at: the last 24 hours, 7 days, 30
-days, the last year, or all time. Everything below it follows your choice.
+### Summary
 
-**The three boxes** under it give the headline numbers for that period: total pageviews, unique
-visitors, and your most-viewed page.
+![The Summary tab](images/site.png)
 
-**Top pages** lists the pages people looked at most. Each row shows:
+**The opening sentence** says what happened: the pageviews and people on the latest day, how this
+week compares with the week before, and the busiest day so far. A new site gets the comparison after
+two weeks of counting; until then, the sentence says when it starts.
 
-- *Page* — the address on your site (`/` is the home page, `/blog` is your blog's main page, and so on).
-- *Pageviews* — how many times it was opened.
-- *Unique visitors* — how many different people opened it.
-- *Share* — what part of all pageviews this page accounts for.
+**The first card** has the totals for the logs kept on the server (often the last 30 days): how many
+pages were opened and by how many people, with a small line of the days in between.
 
-**Top referrers** lists the other websites that sent people to you, such as a search engine, a
-social network, or an article that links to you. *Visits* is how many arrivals came from that
-site.
+**What people read** lists the most-viewed pages: `/` is the home page, `/blog` your blog's
+main page, and so on. **All pages** shows the rest.
 
-**Traffic trends** is a chart of the last 30 days, with pageviews in blue and visitors in green. Use
-it to spot a good day (maybe a post that got shared) or a slow week.
+**How they found you** splits visits four ways: people who **came directly** (bookmarks, typed
+addresses, apps, most email), from **search** engines (and AI assistants), from **social media**,
+and from **other sites** that link to you. Below it are the sites that sent the most visits.
+
+### Report
+
+![The Report tab](images/site-report.png)
+
+**The row of numbers** at the top: pageviews, visitors, pages per visitor, the share who came
+directly, the best day, and the latest day with its change from the day before.
+
+**Pageviews by day** is a calendar of the last five weeks: the darker the square, the busier the
+day. It shows the weekly rhythm at a glance (quiet weekends, a busy Thursday) and any spike.
+
+**Top pages** and **Referrers** are full tables:
+
+- *Views* or *Visits*: how many times a page was opened, or how many arrivals a site sent.
+- *Visitors*: how many different people that was.
+- *Share*: the part of all pageviews (pages) or of all visits from other sites (referrers).
+
+Pages, referrers and visitors cover the logs kept on the server; the footer says which dates. The
+day-by-day numbers go further back, because Metrona keeps each day's totals after the old logs are
+deleted.
+
+### On a phone
+
+Everything works on a phone; the cards and tables stack.
+
+![The Summary tab on a phone](images/site-phone.png)
 
 ## What the numbers mean
 
@@ -89,15 +113,15 @@ which might be the afternoon or evening where you are.
 
 ## Getting the data out
 
-The four buttons above a site's numbers download a spreadsheet file (CSV) that opens in Excel,
+The links at the bottom of a site's page download spreadsheet files (CSV) that open in Excel,
 Numbers or Google Sheets:
 
-- **Export Summary** — the headline numbers.
-- **Export Pages** — the top pages table.
-- **Export Referrers** — the referrers table.
-- **Export Time Series** — the day-by-day numbers behind the chart.
+- **Summary**: the totals and the dates they cover.
+- **Pages**: every page in the list, with pageviews and visitors.
+- **Referrers**: every site that sent visits, with the kind of site (search, social, other).
+- **Days**: pageviews and visitors for each day.
 
-Each export covers the date range you've selected.
+The **CSV** links on the Report tab's tables download those tables.
 
 ## Privacy: what Metrona knows and doesn't
 
@@ -129,7 +153,7 @@ Compare trends, not exact figures: up or down, which pages, which referrers.
 ## Common questions
 
 **My new page doesn't show up.** Numbers update once an hour, and a page shows up after its first
-visit. Wait an hour, then check the date range is *Last 24 Hours* or longer.
+visit. Wait an hour, then look again; on the Summary tab, use **All pages** to see past the top five.
 
 **Today's numbers look low.** Today isn't over yet, and in UTC it may have started only a few hours
 ago.

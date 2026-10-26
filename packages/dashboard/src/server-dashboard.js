@@ -12,6 +12,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const yaml = require('js-yaml');
 const { StaticDashboard } = require('./static-dashboard');
+const { buildView, renderSitePage } = require('./site-view');
 const { DEFAULTS } = require('@metrona/shared');
 
 class ServerDashboard {
@@ -589,93 +590,20 @@ class ServerDashboard {
   }
 
   /**
-   * Generate server-based site HTML (similar to static but with API calls)
+   * One site's page: the Summary and Report tabs (src/site-view.js), the same page the static
+   * publisher writes.
    * @param {string} siteId - Site identifier
-   * @param {Object} site - Site data and config
+   * @param {Object} site - { config, data } for the site
    * @returns {string} HTML content
    */
   generateServerSiteHTML(siteId, site) {
-    const data = site.data;
-    const summary = data.summary || {};
-    
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${site.config.domain || siteId} - Analytics</title>
-    <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body>
-    <div class="container">
-        <header class="header">
-            <nav class="breadcrumb">
-                <a href="/">← Dashboard</a>
-            </nav>
-            <div class="header-controls">
-                <h1>📈 ${site.config.domain || siteId}</h1>
-                <div class="auth-controls">
-                    <button onclick="logout()" class="logout-btn">Logout</button>
-                </div>
-            </div>
-            <p class="subtitle">Analytics Overview</p>
-        </header>
-
-        <div class="controls-section">
-            <div class="date-range-controls">
-                <label for="dateRange">Date Range:</label>
-                <select id="dateRange" onchange="filterByDateRange(this.value)">
-                    <option value="all">All Time</option>
-                    <option value="1d">Last 24 Hours</option>
-                    <option value="7d">Last 7 Days</option>
-                    <option value="30d">Last 30 Days</option>
-                    <option value="1y">Last Year</option>
-                </select>
-            </div>
-            <div class="export-controls">
-                <button onclick="exportData('summary')" class="export-btn">📊 Export Summary</button>
-                <button onclick="exportData('pages')" class="export-btn">📄 Export Pages</button>
-                <button onclick="exportData('referrers')" class="export-btn">🔗 Export Referrers</button>
-                <button onclick="exportData('timeseries')" class="export-btn">📈 Export Time Series</button>
-            </div>
-        </div>
-
-        <div class="overview-cards">
-            <div class="card">
-                <h3>Total Pageviews</h3>
-                <div class="metric" id="totalPageviews">${(summary.total_pageviews || 0).toLocaleString()}</div>
-            </div>
-            <div class="card">
-                <h3>Unique Visitors</h3>
-                <div class="metric" id="uniqueVisitors">${(summary.unique_visitors || 0).toLocaleString()}</div>
-            </div>
-            <div class="card">
-                <h3>Top Page</h3>
-                <div class="metric-small" id="topPage">${summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].path : 'N/A'}</div>
-                <div class="sub-metric" id="topPageViews">${summary.top_pages && summary.top_pages[0] ? summary.top_pages[0].pageviews + ' views' : ''}</div>
-            </div>
-        </div>
-
-        <div id="contentSections">
-            ${this.staticDashboard.generateTopPagesSection(data.top_pages)}
-            ${this.staticDashboard.generateReferrersSection(data.referrers)}
-            ${this.staticDashboard.generateTimeSeriesSection(data.time_series)}
-        </div>
-
-        <footer class="footer">
-            <p>Last updated: ${new Date(site.lastUpdated).toLocaleString()}</p>
-            <p>Data generated at: ${data.metadata?.generated_at ? new Date(data.metadata.generated_at).toLocaleString() : 'Unknown'}</p>
-        </footer>
-    </div>
-
-    <script>
-        // Embed site ID for API calls
-        window.siteId = '${siteId}';
-        window.isServerMode = true;
-    </script>
-    <script src="/static/server-dashboard.js"></script>
-</body>
-</html>`;
+    const config = site.config || {};
+    const view = buildView(site.data, { siteId, name: config.name, domain: config.domain });
+    return renderSitePage(view, {
+      assetBase: '/static',
+      backHref: this.sites.length > 1 ? '/' : null,
+      logout: Boolean(this.passwordHash),
+    });
   }
 
   /**
