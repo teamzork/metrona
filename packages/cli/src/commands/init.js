@@ -97,7 +97,7 @@ function statsSnippet(server, site, hash) {
 # In ${site.domain}'s server block (the HTTPS one), add:
 #   include ${STATS.snippets}/${site.siteId}.nginx.conf;
 # then: sudo nginx -t && sudo systemctl reload nginx
-location = /stats { return 301 /stats/; }
+location = /stats { absolute_redirect off; return 301 /stats/; }
 location ${STATS.path} {
     alias ${dir}/;
     index index.html;

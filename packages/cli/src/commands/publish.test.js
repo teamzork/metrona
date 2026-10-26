@@ -33,6 +33,8 @@ describe('metrona init --stats', () => {
     expect(snippet).toContain('alias /var/lib/metrona/public/blog-example-org/;');
     expect(snippet).toContain('auth_basic_user_file /etc/metrona/stats.htpasswd;');
     expect(snippet).toContain('X-Robots-Tag "noindex, nofollow"');
+    // Behind a proxy that ends HTTPS, an absolute redirect would point at http://
+    expect(snippet).toContain('location = /stats { absolute_redirect off; return 301 /stats/; }');
   });
 
   test('keeps the password on a second run, and replaces it only when asked', async () => {
