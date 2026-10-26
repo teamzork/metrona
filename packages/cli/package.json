@@ -1,7 +1,15 @@
 {
-  "name": "@metrona/cli",
+  "name": "metrona",
   "version": "1.0.0",
-  "description": "Setup wizard and management CLI for Metrona Analytics System",
+  "description": "Website analytics from your server logs: no script, no cookies. One command to try it, install it and run it.",
+  "license": "MIT",
+  "homepage": "https://github.com/teamzork/metrona#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamzork/metrona.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/teamzork/metrona/issues",
   "main": "src/index.js",
   "bin": {
     "metrona": "src/index.js"
@@ -14,6 +22,10 @@
     "lint": "eslint src/**/*.js"
   },
   "dependencies": {
+    "@metrona/dashboard": "^1.0.0",
+    "@metrona/mcp": "^1.0.0",
+    "@metrona/parser": "^1.0.0",
+    "@metrona/scheduler": "^1.0.0",
     "@metrona/shared": "^1.0.0",
     "bcryptjs": "^2.4.3",
     "chalk": "^4.1.2",
@@ -26,5 +38,29 @@
     "fast-check": "^3.15.0",
     "jest": "^29.0.0",
     "typescript": "^5.0.0"
-  }
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.js",
+    "!src/**/*.spec.js",
+    "!src/**/*-property-test.js",
+    "!src/**/*-verification.js",
+    "demo-data"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "analytics",
+    "privacy",
+    "self-hosted",
+    "nginx",
+    "caddy",
+    "web-analytics",
+    "access-log",
+    "mcp"
+  ]
 }

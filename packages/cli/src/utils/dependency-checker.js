@@ -17,7 +17,7 @@ class DependencyChecker {
         name: 'Node.js',
         command: 'node --version',
         validator: this.validateNodeVersion.bind(this),
-        installInstructions: 'Install Node.js 18+ from https://nodejs.org/'
+        installInstructions: 'Install Node.js 22+ from https://nodejs.org/'
       },
       {
         name: 'nginx',
@@ -106,10 +106,10 @@ class DependencyChecker {
     const version = `${major}.${minor}.${patch}`;
     const majorVersion = parseInt(major, 10);
     
-    if (majorVersion < 18) {
+    if (majorVersion < 22) {
       return {
         valid: false,
-        message: `Node.js ${version} found, but version 18+ is required`,
+        message: `Node.js ${version} found, but version 22+ is required`,
         version
       };
     }

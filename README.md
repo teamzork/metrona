@@ -1,5 +1,9 @@
 # Metrona
 
+[![CI](https://github.com/teamzork/metrona/actions/workflows/ci.yml/badge.svg)](https://github.com/teamzork/metrona/actions/workflows/ci.yml)
+[![Docker image](https://github.com/teamzork/metrona/actions/workflows/docker.yml/badge.svg)](https://github.com/teamzork/metrona/pkgs/container/metrona)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Website analytics from the logs your server already keeps.** Metrona reads your web server's
 access logs and shows each site's pageviews, visitors, top pages, referrers, and daily trends. It
 adds no tracking script and no cookies to your pages, and it uses no third-party service.
@@ -18,6 +22,8 @@ adds no tracking script and no cookies to your pages, and it uses no third-party
 - **Plain files.** Results are YAML files you can read, back up, export to CSV, or feed into
   something else.
 - **Small.** A Node.js process that wakes up once an hour. No database.
+- **Ask an agent.** A read-only MCP server lets Claude Code, Cursor or any MCP client answer
+  "what were the top pages this month?" straight from the numbers.
 
 ## What you get
 
@@ -46,27 +52,61 @@ web server access log ──► scheduler (hourly) ──► <site>.yaml ──�
 
 ## Try it in a minute
 
-You'll need Node.js 18 or newer.
+The dashboard on sample data, with Docker:
 
 ```bash
-git clone https://github.com/teamzork/metrona.git
-cd metrona
-npm install
-node examples/try-dashboard.js     # sample data → http://localhost:3003
+docker run --rm -p 3003:3003 ghcr.io/teamzork/metrona demo     # → http://localhost:3003
+```
+
+Or with Node.js 22 or newer:
+
+```bash
+git clone https://github.com/teamzork/metrona.git && cd metrona && npm install
+npx metrona demo                                                # → http://localhost:3003
 ```
 
 ## Install it on a server
 
-[**Docs/setup.md**](Docs/setup.md) walks through it: the config file, log access for nginx or
-Caddy, the two systemd services, and putting the dashboard behind HTTPS. For Caddy specifics and
-how counting works in detail, see [Docs/caddy.md](Docs/caddy.md).
+One command sets it up: it asks for nginx or Caddy and each site's access log, then writes the
+config, the secrets and the two systemd services, with the right permissions to read the logs.
+
+```bash
+sudo npx metrona init --start     # from a clone in /opt/metrona
+npx metrona status                # each site, its log, and when its numbers were last written
+```
+
+Prefer containers? [compose.example.yaml](compose.example.yaml) runs the scheduler and the
+dashboard with the logs mounted read-only. [**Docs/setup.md**](Docs/setup.md) covers both, plus
+putting the dashboard behind HTTPS. For Caddy specifics and how counting works in detail, see
+[Docs/caddy.md](Docs/caddy.md).
+
+## Ask an agent
+
+```bash
+claude mcp add metrona -- ssh myserver "cd /opt/metrona && npx --no-install metrona mcp"
+```
+
+Then ask Claude Code, Cursor or any MCP client about your traffic. The server is read-only, runs
+over stdio, and needs no open port: SSH is the login. See [Docs/mcp.md](Docs/mcp.md).
+
+## Commands
+
+| | |
+| --- | --- |
+| `metrona demo` | The dashboard on sample data |
+| `metrona init` | Set it up on this server: config, secrets, systemd units, user, folders |
+| `metrona status` | Each site's log and when its numbers were last written |
+| `metrona run` | Process every site once, now (the scheduler does this hourly) |
+| `metrona scheduler` · `metrona dashboard` | The two services, as systemd and Docker start them |
+| `metrona mcp` | The read-only MCP server over stdio |
 
 ## Documentation
 
 | | For |
 | --- | --- |
 | [User guide](Docs/user-guide.md) | Site owners: reading the dashboard, what the numbers mean |
-| [Setup](Docs/setup.md) | Admins: installing and running Metrona on a server |
+| [Setup](Docs/setup.md) | Admins: installing and running Metrona on a server, or in Docker |
+| [MCP](Docs/mcp.md) | Asking an agent about your traffic |
 | [Caddy and counting rules](Docs/caddy.md) | Admins: Caddy logs, per-site options, privacy notes |
 | [Architecture](Docs/architecture.md) · [API](Docs/api.md) | Developers |
 | [Design history](Docs/design/) | The original spec, requirements and task list |
@@ -75,15 +115,16 @@ how counting works in detail, see [Docs/caddy.md](Docs/caddy.md).
 
 ```
 packages/
+  cli/         the metrona command (npm: metrona), with the demo data
   parser/      log parsing, filtering, counting, YAML output
-  scheduler/   the hourly job (daemon.js) and its config
-  dashboard/   the web dashboard (start.js) and a static-HTML mode
-  components/  embeddable web components (early)
-  cli/         an nginx setup wizard (early)
+  scheduler/   the hourly job and its config
+  dashboard/   the web dashboard and a static-HTML mode
+  mcp/         the read-only MCP server
+  components/  embeddable web components (early, not published)
   shared/      constants and helpers
 templates/     config, systemd, nginx and Caddy examples
-examples/      sample data and try-dashboard.js
 Docs/          guides
+Dockerfile, compose.example.yaml
 ```
 
 ## Development
@@ -93,8 +134,13 @@ npm install
 npm test          # every package's Jest suite
 ```
 
-Plain JavaScript (CommonJS), so there's no build step. Each package has its tests next to the source
-(`*.test.js`, plus `*.property.test.js` for property-based tests).
+Plain JavaScript (CommonJS; the MCP server is ESM), so there's no build step. Each package has its
+tests next to the source (`*.test.js`, plus `*.property.test.js` for property-based tests). CI runs
+them on Node 22 and 24.
+
+Releases: `npm version <minor|patch> --workspaces --no-git-tag-version`, commit, tag `v<version>`,
+push the tag. The tag publishes the npm packages ([publish.yml](.github/workflows/publish.yml)) and
+the Docker image ([docker.yml](.github/workflows/docker.yml)).
 
 ## License
 

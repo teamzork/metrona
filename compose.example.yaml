@@ -1,0 +1,37 @@
+# Metrona with Docker Compose. Copy this beside your metrona.yaml and metrona.env
+# (make both with `docker run --rm -v "$PWD:/out" ghcr.io/teamzork/metrona init --root /out ...`,
+# or by hand from templates/config/metrona.yaml.example), then: docker compose up -d
+#
+# In metrona.yaml, logPath is the path inside the container: keep the same paths by mounting
+# the log folder at the same place, as below.
+
+services:
+  scheduler:
+    image: ghcr.io/teamzork/metrona:latest
+    command: ["scheduler", "--run-now"]
+    restart: unless-stopped
+    network_mode: none            # it only reads logs and writes files
+    env_file: ./metrona.env       # VISITOR_HASH_SALT: set once, never change
+    # A group that can read the logs: 4 is adm (nginx on Debian/Ubuntu);
+    # for Caddy, the caddy group's id (`getent group caddy`).
+    group_add: ["${LOG_GROUP_ID:-4}"]
+    volumes:
+      - ./metrona.yaml:/etc/metrona/metrona.yaml:ro
+      - /var/log/nginx:/var/log/nginx:ro       # or /var/log/caddy
+      - metrona-data:/var/lib/metrona
+
+  dashboard:
+    image: ghcr.io/teamzork/metrona:latest
+    command: ["dashboard"]
+    restart: unless-stopped
+    env_file: ./metrona.env       # SESSION_SECRET
+    environment:
+      DASHBOARD_HOST: 0.0.0.0     # inside the container; the port below stays on loopback
+    ports:
+      - "127.0.0.1:3001:3001"     # put it behind your web server with HTTPS and a password
+    volumes:
+      - ./metrona.yaml:/etc/metrona/metrona.yaml:ro
+      - metrona-data:/var/lib/metrona:ro
+
+volumes:
+  metrona-data:

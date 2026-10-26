@@ -2,6 +2,14 @@
   "name": "@metrona/dashboard",
   "version": "1.0.0",
   "description": "Central monitoring dashboard for Metrona Analytics System",
+  "license": "MIT",
+  "homepage": "https://github.com/teamzork/metrona#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamzork/metrona.git",
+    "directory": "packages/dashboard"
+  },
+  "bugs": "https://github.com/teamzork/metrona/issues",
   "main": "src/index.js",
   "scripts": {
     "build": "echo 'No build step needed for JavaScript'",
@@ -29,6 +37,17 @@
     "typescript": "^5.0.0"
   },
   "files": [
+    "src",
+    "!src/**/*.test.js",
+    "!src/**/*.spec.js",
+    "!src/**/*-property-test.js",
+    "!src/**/*-verification.js",
     "public"
-  ]
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

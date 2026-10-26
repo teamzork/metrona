@@ -1,0 +1,11 @@
+.git
+.github
+**/node_modules
+coverage
+Docs
+examples
+templates
+**/*.test.js
+**/*.test.mjs
+**/*-property-test.js
+**/*-verification.js

@@ -23,19 +23,19 @@ describe('DependencyChecker', () => {
 
   describe('validateNodeVersion', () => {
     it('should validate compatible Node.js version', async () => {
-      const result = await checker.validateNodeVersion('v18.17.0');
+      const result = await checker.validateNodeVersion('v22.11.0');
       
       expect(result.valid).toBe(true);
-      expect(result.version).toBe('18.17.0');
+      expect(result.version).toBe('22.11.0');
       expect(result.message).toContain('compatible');
     });
 
     it('should reject old Node.js version', async () => {
-      const result = await checker.validateNodeVersion('v16.20.0');
+      const result = await checker.validateNodeVersion('v20.18.0');
       
       expect(result.valid).toBe(false);
-      expect(result.version).toBe('16.20.0');
-      expect(result.message).toContain('version 18+ is required');
+      expect(result.version).toBe('20.18.0');
+      expect(result.message).toContain('version 22+ is required');
     });
 
     it('should handle invalid version format', async () => {

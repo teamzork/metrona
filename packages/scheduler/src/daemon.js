@@ -20,7 +20,8 @@ function parseArgs() {
     dashboardDataDir: null,
     timezone: 'UTC',
     logLevel: 'info',
-    daemon: false
+    daemon: false,
+    runNow: false
   };
   
   for (let i = 0; i < args.length; i++) {
@@ -50,6 +51,9 @@ function parseArgs() {
       case '--daemon':
       case '-d':
         options.daemon = true;
+        break;
+      case '--run-now':
+        options.runNow = true;
         break;
       case '--help':
       case '-h':
@@ -87,6 +91,7 @@ Options:
   -t, --timezone <tz>     Default timezone (default: UTC)
   -l, --log-level <level> Log level: error, warn, info, debug (default: info)
   -d, --daemon            Run as daemon (detach from terminal)
+      --run-now           Process every site once at start, then keep the schedule
   -h, --help              Show this help message
   -v, --version           Show version information
 
@@ -277,6 +282,10 @@ async function main() {
     
     // Start the daemon
     await daemon.start();
+    if (options.runNow) {
+      const ran = await daemon.runAllJobsNow();
+      global.log.info(`Processed ${ran} site(s) at start`);
+    }
     
     // If running as daemon, detach from terminal
     if (options.daemon) {

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * @fileoverview Main CLI entry point for Metrona Analytics System
- * Provides interactive setup wizard and management commands
+ * @fileoverview The `metrona` command: try it (demo), set it up (init), run it (scheduler,
+ * dashboard, run), check it (status), and ask an agent about it (mcp).
  */
 
 const { Command } = require('commander');
@@ -16,12 +16,87 @@ const program = new Command();
 
 program
   .name('metrona')
-  .description('Metrona Analytics System - Privacy-focused web analytics')
+  .description('Website analytics from your server logs: no script, no cookies, no database')
   .version(version);
+
+/** Runs an async command; a thrown error is printed plainly and exits 1. */
+const action = (fn) => async (...args) => {
+  try {
+    const code = await fn(...args);
+    if (typeof code === 'number' && code > 0) process.exitCode = 1;
+  } catch (error) {
+    console.error(chalk.red(`✗ ${error.message}`));
+    process.exit(1);
+  }
+};
+const collect = (value, list) => [...list, value];
+
+program
+  .command('demo')
+  .description('Open the dashboard on sample data: nothing to configure')
+  .option('-p, --port <port>', 'port to listen on', process.env.PORT || '3003')
+  .option('--host <host>', 'address to listen on (0.0.0.0 inside a container)', process.env.METRONA_DEMO_HOST || '127.0.0.1')
+  .action(action((opts) => require('./commands/demo').demo(opts)));
+
+program
+  .command('init')
+  .description('Set Metrona up on this server: config, secrets, systemd units, user and folders')
+  .option('--server <nginx|caddy>', 'the web server writing the access logs')
+  .option('--site <domain=logPath>', 'a site and its access log (repeat for more)', collect, [])
+  .option('--cloudflare', "the sites are behind Cloudflare's proxy")
+  .option('--port <port>', 'dashboard port on 127.0.0.1', '3001')
+  .option('--start', 'enable and start both services when done')
+  .option('-y, --yes', "don't ask: take everything from the options")
+  .option('--force', 'replace an existing metrona.yaml (the salt is always kept)')
+  .option('--root <dir>', "write under <dir> instead of /, and don't touch the system")
+  .action(action(async (opts) => {
+    const init = require('./commands/init');
+    init.printNextSteps(await init.init(opts));
+  }));
+
+program
+  .command('run')
+  .description('Process every site once, now, and exit (the scheduler does this hourly)')
+  .option('-c, --config <file>', 'metrona.yaml (default /etc/metrona/metrona.yaml, or METRONA_CONFIG)')
+  .option('--secrets-file <file>', 'where VISITOR_HASH_SALT is (default /etc/metrona/metrona.env)')
+  .option('-o, --output <dir>', 'datasets folder (default /var/lib/metrona/datasets)')
+  .option('--dashboard-data <dir>', "where to write each site's numbers (default: the config's dashboard.dataDir)")
+  .option('--site <siteId>', 'only this site')
+  .option('--verbose', "show the processing log, not just each site's result")
+  .action(action((opts) => require('./commands/run').run(opts)));
+
+program
+  .command('status')
+  .description("Each site's log and when its numbers were last written")
+  .option('-c, --config <file>', 'metrona.yaml (default /etc/metrona/metrona.yaml, or METRONA_CONFIG)')
+  .option('--dashboard-data <dir>', "where each site's numbers are (default: the config's dashboard.dataDir)")
+  .option('--json', 'machine-readable output')
+  .action(action((opts) => require('./commands/status').status(opts)));
+
+program
+  .command('scheduler')
+  .description('Run the hourly scheduler (what the metrona-scheduler service starts)')
+  .allowUnknownOption()
+  .helpOption(false)
+  .argument('[options...]', 'scheduler options, see `metrona scheduler --help`')
+  .action(action((args) => require('./commands/services').scheduler(args)));
+
+program
+  .command('dashboard')
+  .description('Run the dashboard (what the metrona-dashboard service starts)')
+  .option('-c, --config <file>', 'metrona.yaml (default /etc/metrona/metrona.yaml, or METRONA_CONFIG)')
+  .action(action((opts) => require('./commands/services').dashboard(opts)));
+
+program
+  .command('mcp')
+  .description('Serve the read-only MCP server over stdio, for Claude Code, Cursor and other agents')
+  .option('--data-dir <dir>', "where each site's numbers are (default: METRONA_DATA_DIR, the config's dashboard.dataDir, /var/lib/metrona/dashboard)")
+  .option('-c, --config <file>', 'metrona.yaml to read dashboard.dataDir from')
+  .action(action((opts) => require('./commands/mcp').mcp(opts)));
 
 program
   .command('setup')
-  .description('Run interactive setup wizard')
+  .description('The earlier interactive nginx wizard (superseded by init)')
   .option('--skip-deps', 'Skip dependency checking')
   .option('--config-path <path>', 'Custom configuration file path')
   .action(async (options) => {
@@ -65,8 +140,8 @@ program
   });
 
 program
-  .command('status')
-  .description('Check system status')
+  .command('doctor')
+  .description('Check this machine: Node, the web server, systemd')
   .action(async () => {
     try {
       const depChecker = new DependencyChecker();
@@ -87,21 +162,6 @@ program
         
     } catch (error) {
       console.error(chalk.red('❌ Status check failed:'), error.message);
-      process.exit(1);
-    }
-  });
-
-program
-  .command('config')
-  .description('Configuration management')
-  .option('--validate', 'Validate configuration file')
-  .option('--path <path>', 'Configuration file path')
-  .action(async (options) => {
-    try {
-      // Configuration management will be implemented in later tasks
-      console.log(chalk.yellow('⚠️  Configuration management coming in future version'));
-    } catch (error) {
-      console.error(chalk.red('❌ Configuration command failed:'), error.message);
       process.exit(1);
     }
   });

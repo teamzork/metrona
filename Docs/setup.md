@@ -13,13 +13,70 @@ Metrona runs as two small services on the machine that has the web server's acce
 Both read one config file, `/etc/metrona/metrona.yaml`. Nothing else is needed: no database, no
 build step, and no outgoing network access.
 
+There are three ways to install. `metrona init` is the quickest. Docker suits a server that runs
+everything in containers. By hand is there if you want to see every step.
+
 ## Requirements
 
-- Linux with systemd (examples use Ubuntu/Debian paths)
-- Node.js 18 or newer at `/usr/bin/node`
-- nginx or Caddy (2.8+) writing an access log per site
+- Linux with systemd (examples use Ubuntu/Debian paths), or Docker
+- Node.js 22 or newer (not needed with Docker)
+- nginx or Caddy (2.8+) writing an access log per site. Behind Cloudflare's proxy? Read "Behind
+  Cloudflare's proxy?" in step 2 below first.
 
-## 1. Get the code
+## The quick way: `metrona init`
+
+```bash
+sudo git clone https://github.com/teamzork/metrona.git /opt/metrona
+cd /opt/metrona && sudo npm ci --omit=dev
+sudo npx metrona init --start
+```
+
+`init` asks which web server you use and, for each site, its domain and access log. Then it:
+
+- writes `/etc/metrona/metrona.yaml` and `/etc/metrona/metrona.env` (a new visitor salt and
+  session secret; an existing salt is always kept),
+- creates the `metrona` system user, adds it to `adm` (nginx) or `caddy` so it can read the logs,
+  and makes `/var/lib/metrona`,
+- writes both systemd units, with the log folders and the group filled in, and starts them
+  (`--start`). The scheduler processes every site right away, then hourly.
+
+Everything can also be given as options, for scripts:
+
+```bash
+sudo npx metrona init --server caddy --site example.com=/var/log/caddy/example.log --site blog.example.com=/var/log/caddy/blog.log --yes --start
+```
+
+`--root /tmp/try` writes the files under `/tmp/try` instead, without touching the system, so you can
+read them first. Then check:
+
+```bash
+npx metrona status          # each site: is its log readable, when were its numbers last written
+```
+
+What's left is putting the dashboard online, in [step 5](#5-put-the-dashboard-online).
+
+## With Docker
+
+The image `ghcr.io/teamzork/metrona` holds every command. `compose.example.yaml` in the repository
+runs the scheduler (no network, logs mounted read-only) and the dashboard (on `127.0.0.1:3001`):
+
+```bash
+mkdir -p /srv/metrona && cd /srv/metrona
+curl -fsSLO https://raw.githubusercontent.com/teamzork/metrona/main/compose.example.yaml && mv compose.example.yaml compose.yaml
+curl -fsSL https://raw.githubusercontent.com/teamzork/metrona/main/templates/config/metrona.yaml.example -o metrona.yaml
+printf 'VISITOR_HASH_SALT=%s\nSESSION_SECRET=%s\n' "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" > metrona.env && chmod 600 metrona.env
+editor metrona.yaml compose.yaml    # your sites; the log folder and the group that can read it
+docker compose up -d
+docker compose exec scheduler metrona status
+```
+
+Then put the dashboard online, as in [step 5](#5-put-the-dashboard-online).
+
+## By hand
+
+The same as `init` does, one step at a time.
+
+### 1. Get the code
 
 ```bash
 sudo useradd --system --home /var/lib/metrona --shell /usr/sbin/nologin metrona
@@ -29,7 +86,7 @@ sudo mkdir -p /etc/metrona /var/lib/metrona/datasets /var/lib/metrona/dashboard
 sudo chown -R metrona:metrona /var/lib/metrona
 ```
 
-## 2. Let Metrona read the logs
+### 2. Let Metrona read the logs
 
 **Caddy.** Give each site a JSON log file, group-readable (`mode 0640`). See
 `templates/caddy/Caddyfile.example` and [caddy.md](caddy.md). Metrona reads them through the
@@ -56,7 +113,7 @@ Rotation: Metrona reads each site's current log plus the files rotated beside it
 runs miss nothing. Top pages and referrers cover the log files still on disk. Keep about 30 days of
 logs if you want 30-day lists.
 
-## 3. Configure
+### 3. Configure
 
 ```bash
 sudo cp /opt/metrona/templates/config/metrona.yaml.example /etc/metrona/metrona.yaml
@@ -78,7 +135,7 @@ sudo chown root:metrona /etc/metrona/metrona.* && sudo chmod 0640 /etc/metrona/m
 **Never change `VISITOR_HASH_SALT`** once Metrona is counting, or every visitor afterwards looks
 new. Back it up with the rest of `/etc/metrona`.
 
-## 4. Start the services
+### 4. Start the services
 
 ```bash
 sudo cp /opt/metrona/templates/systemd/metrona-*.service /etc/systemd/system/
@@ -148,7 +205,12 @@ cd /opt/metrona && sudo git pull && sudo npm ci --omit=dev
 sudo systemctl restart metrona-scheduler metrona-dashboard
 ```
 
+With Docker: `docker compose pull && docker compose up -d`.
+
 ## Troubleshooting
+
+Start with `npx metrona status`: it checks each site's log and how fresh its numbers are, and says
+what to look at. `npx metrona run` processes every site once, now, and reports each one.
 
 | Symptom | Look at |
 | --- | --- |
@@ -157,5 +219,4 @@ sudo systemctl restart metrona-scheduler metrona-dashboard
 | Numbers stopped updating | `systemctl status metrona-scheduler`; the card's "Updated" time on the dashboard shows the last run |
 | The dashboard answers 502 | `systemctl status metrona-dashboard`, and that the proxy points at `127.0.0.1:3001` |
 
-The CLI in `packages/cli` (`metrona setup`) is an early nginx setup wizard. The steps above are the
-supported way to install.
+`metrona setup` is an earlier interactive wizard for nginx only; `metrona init` replaces it.

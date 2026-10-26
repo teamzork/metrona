@@ -1,0 +1,26 @@
+name: Publish to npm
+
+# On a v* tag, publish every non-private package with npm's trusted publishing:
+# no token is stored; npm trusts this workflow (set up once per package on npmjs.com:
+# Settings → Trusted publisher → GitHub Actions, teamzork/metrona, publish.yml).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm test
+      - run: npm publish --workspaces --access public

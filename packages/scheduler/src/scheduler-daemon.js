@@ -782,6 +782,21 @@ class SchedulerDaemon extends EventEmitter {
    * @returns {Promise<void>}
    * @private
    */
+  /**
+   * Run every site job once, now, instead of waiting for its next scheduled time. Used at start
+   * (`--run-now`) so a fresh install shows numbers right away. Sites run one after another.
+   * @returns {Promise<number>} How many jobs ran
+   */
+  async runAllJobsNow() {
+    let ran = 0;
+    for (const [jobId, job] of this.scheduler.jobs) {
+      if (!jobId.startsWith('site-') || !job.enabled) continue;
+      await this.scheduler.executeJob(jobId, job.jobFunction, job.context);
+      ran++;
+    }
+    return ran;
+  }
+
   async scheduleJobsFromConfig() {
     if (!this.config || !this.config.sites) {
       return;

@@ -1,0 +1,38 @@
+{
+  "name": "@metrona/mcp",
+  "version": "1.0.0",
+  "description": "Read-only MCP server for Metrona: ask an agent about your sites' traffic",
+  "license": "MIT",
+  "homepage": "https://github.com/teamzork/metrona#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamzork/metrona.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": "https://github.com/teamzork/metrona/issues",
+  "main": "src/server.mjs",
+  "exports": {
+    ".": "./src/server.mjs"
+  },
+  "bin": {
+    "metrona-mcp": "src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test src/*.test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "js-yaml": "^4.1.0",
+    "zod": "^4.1.0"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.mjs"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

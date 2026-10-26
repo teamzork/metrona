@@ -2,6 +2,14 @@
   "name": "@metrona/parser",
   "version": "1.0.0",
   "description": "Log parser and analytics engine for Metrona Analytics System",
+  "license": "MIT",
+  "homepage": "https://github.com/teamzork/metrona#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamzork/metrona.git",
+    "directory": "packages/parser"
+  },
+  "bugs": "https://github.com/teamzork/metrona/issues",
   "main": "src/index.js",
   "scripts": {
     "build": "echo 'No build step needed for JavaScript'",
@@ -21,5 +29,18 @@
     "fast-check": "^3.15.0",
     "jest": "^29.0.0",
     "typescript": "^5.0.0"
+  },
+  "files": [
+    "src",
+    "!src/**/*.test.js",
+    "!src/**/*.spec.js",
+    "!src/**/*-property-test.js",
+    "!src/**/*-verification.js"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
