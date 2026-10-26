@@ -3,6 +3,7 @@
  * systemd units and the Docker image start them.
  */
 
+const fs = require('fs');
 const path = require('path');
 const { DEFAULTS, configPath } = require('./common');
 
@@ -13,6 +14,11 @@ async function scheduler(args) {
   if (!args.some((a) => a === '-c' || a === '--config')) withDefaults.push('--config', configPath());
   if (!args.some((a) => a === '-o' || a === '--output')) withDefaults.push('--output', DEFAULTS.datasets);
   if (!args.includes('--dashboard-data')) withDefaults.push('--dashboard-data', DEFAULTS.dashboardData);
+  // Make the output folders, so a fresh volume or container needs nothing done first.
+  for (const flag of ['--output', '-o', '--dashboard-data']) {
+    const at = withDefaults.indexOf(flag);
+    if (at > -1 && withDefaults[at + 1]) fs.mkdirSync(withDefaults[at + 1], { recursive: true });
+  }
   process.argv = [process.argv[0], 'metrona-scheduler', ...withDefaults];
   await daemon.main();
 }
