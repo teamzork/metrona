@@ -360,6 +360,28 @@ describe('LogFileReader', () => {
       
       await expect(reader.checkMemoryUsage()).rejects.toThrow('Memory usage exceeded limit');
     });
+
+    it('limits what reading adds, not what the process already holds', async () => {
+      const reader = new LogFileReader('/var/log/nginx/access.log', { maxMemoryMB: 100 });
+      const MB = 1024 * 1024;
+      const usage = jest.spyOn(process, 'memoryUsage');
+      try {
+        // A busy scheduler: 400 MB in use before reading starts
+        reader.baselineHeapBytes = 400 * MB;
+        usage.mockReturnValue({ heapUsed: 450 * MB });
+        expect(reader.getMemoryUsageMB()).toBe(50);
+        await expect(reader.checkMemoryUsage()).resolves.toBeUndefined();
+
+        usage.mockReturnValue({ heapUsed: 520 * MB });
+        await expect(reader.checkMemoryUsage()).rejects.toThrow('grew the heap by 120MB');
+
+        // After a garbage collection the heap can be smaller than at the start
+        usage.mockReturnValue({ heapUsed: 300 * MB });
+        expect(reader.getMemoryUsageMB()).toBe(0);
+      } finally {
+        usage.mockRestore();
+      }
+    });
   });
 
   describe('utility functions', () => {

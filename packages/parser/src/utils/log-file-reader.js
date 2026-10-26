@@ -32,6 +32,10 @@ class LogFileReader {
     // Track current position for incremental processing
     this.currentPosition = this.lastPosition;
     
+    // The memory limit is on what reading adds, not on the whole process: a long-running
+    // scheduler (or a test runner) may already hold more than the limit before it starts.
+    this.baselineHeapBytes = process.memoryUsage().heapUsed;
+    
     // Memory usage tracking
     this.processedLines = 0;
     this.startTime = Date.now();
@@ -116,6 +120,7 @@ class LogFileReader {
    * @returns {AsyncGenerator<Object>} Stream of parsed log entries
    */
   async *streamLogEntries(parser) {
+    this.baselineHeapBytes = process.memoryUsage().heapUsed;
     const logFiles = await this.discoverLogFiles();
     
     if (logFiles.length === 0) {
@@ -273,18 +278,18 @@ class LogFileReader {
     const memoryUsageMB = this.getMemoryUsageMB();
     
     if (memoryUsageMB > this.maxMemoryMB) {
-      throw new Error(`Memory usage exceeded limit: ${memoryUsageMB}MB > ${this.maxMemoryMB}MB`);
+      throw new Error(`Memory usage exceeded limit: reading grew the heap by ${memoryUsageMB}MB > ${this.maxMemoryMB}MB`);
     }
   }
 
   /**
-   * Get current memory usage in MB
-   * @returns {number} Memory usage in MB
+   * How much the heap has grown since reading started, in MB
+   * @returns {number} Memory added in MB (0 when the heap is smaller than at the start)
    * @private
    */
   getMemoryUsageMB() {
-    const memoryUsage = process.memoryUsage();
-    return Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    const grown = process.memoryUsage().heapUsed - this.baselineHeapBytes;
+    return Math.max(0, Math.round(grown / 1024 / 1024));
   }
 
   /**

@@ -271,10 +271,10 @@ describe('LogFileReader Property Tests', () => {
               const smallAvgMemory = smallMemoryReadings.reduce((a, b) => a + b, 0) / smallMemoryReadings.length;
               const largeAvgMemory = largeMemoryReadings.reduce((a, b) => a + b, 0) / largeMemoryReadings.length;
               
-              // Memory usage should not increase by more than 2x even when file size increases by 3-8x
-              // This proves we're streaming and not loading proportionally more data
-              const memoryRatio = largeAvgMemory / smallAvgMemory;
-              expect(memoryRatio).toBeLessThan(2.0);
+              // Readings are how much reading has grown the heap (often 0 MB for a small file), so
+              // compare growth: 3-8x the file may add at most 2x the memory, plus 5 MB of GC noise.
+              // Loading the file instead of streaming it would grow with its size.
+              expect(largeAvgMemory).toBeLessThanOrEqual(smallAvgMemory * 2 + 5);
             }
           }
         ),
