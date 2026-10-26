@@ -4,8 +4,13 @@
 
 const { StaticDashboard } = require('./static-dashboard');
 const { ServerDashboard } = require('./server-dashboard');
+const { publishSite } = require('./publish');
+const { buildView, renderSitePage } = require('./site-view');
 
 module.exports = {
   StaticDashboard,
-  ServerDashboard
+  ServerDashboard,
+  publishSite,
+  buildView,
+  renderSitePage
 };

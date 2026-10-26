@@ -112,6 +112,13 @@ describe('Caddy end to end', () => {
 
     const view = yaml.load(await fs.readFile(path.join(dashboardDataDir, 'dimka.yaml'), 'utf8'));
     expect(view.summary.total_pageviews).toBe(3);
+
+    // With a publish folder, the same run writes the static page too.
+    const publishing = new JobExecutor({ outputDir: path.join(dir, 'datasets'), dashboardDataDir, salt: 'test-salt', publishDir: path.join(dir, 'public') });
+    await publishing.createSiteProcessingJob(site)();
+    const page = await fs.readFile(path.join(dir, 'public/dimka/index.html'), 'utf8');
+    expect(page).toContain('<h1 class="mtr-site">dimka.com</h1>');
+    expect(page).toContain('/movies');
     expect(view.time_series.daily.map((d) => d.date)).toEqual(['2026-10-04', '2026-10-05', '2026-10-06']);
   });
 

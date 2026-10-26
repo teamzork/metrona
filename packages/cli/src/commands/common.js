@@ -11,6 +11,7 @@ const DEFAULTS = {
   envFile: '/etc/metrona/metrona.env',
   datasets: '/var/lib/metrona/datasets',
   dashboardData: '/var/lib/metrona/dashboard',
+  publish: '/var/lib/metrona/public',
 };
 
 /** --config, else METRONA_CONFIG, else /etc/metrona/metrona.yaml */
@@ -50,6 +51,11 @@ function dashboardDataDir(config, option) {
   return option || process.env.METRONA_DATA_DIR || (config && config.dashboard && config.dashboard.dataDir) || DEFAULTS.dashboardData;
 }
 
+/** Where static pages go: --publish-dir, else the config's publish.dir; null when not publishing. */
+function publishDir(config, option) {
+  return option || (config && config.publish && config.publish.dir) || null;
+}
+
 /**
  * Loads KEY=VALUE lines into process.env, without overriding what is already set — the same
  * file systemd's EnvironmentFile reads. A missing file is fine; an unreadable one is said.
@@ -87,4 +93,4 @@ function ago(date, now = Date.now()) {
   return `${Math.round(s / 86400)} d ago`;
 }
 
-module.exports = { DEFAULTS, configPath, loadConfig, dashboardDataDir, loadEnvFile, enabledSites, ago };
+module.exports = { DEFAULTS, configPath, loadConfig, dashboardDataDir, publishDir, loadEnvFile, enabledSites, ago };

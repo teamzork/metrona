@@ -18,6 +18,7 @@ function parseArgs() {
     configPath: './config/scheduler.yaml',
     outputDir: './analytics',
     dashboardDataDir: null,
+    publishDir: null,
     timezone: 'UTC',
     logLevel: 'info',
     daemon: false,
@@ -30,6 +31,9 @@ function parseArgs() {
     switch (arg) {
       case '--dashboard-data':
         options.dashboardDataDir = args[++i];
+        break;
+      case '--publish-dir':
+        options.publishDir = args[++i];
         break;
         
       case '--config':
@@ -92,6 +96,7 @@ Options:
   -l, --log-level <level> Log level: error, warn, info, debug (default: info)
   -d, --daemon            Run as daemon (detach from terminal)
       --run-now           Process every site once at start, then keep the schedule
+      --publish-dir <dir> Also write each site's page as static files, <dir>/<siteId>/index.html
   -h, --help              Show this help message
   -v, --version           Show version information
 
@@ -273,7 +278,10 @@ async function main() {
       configPath: path.resolve(options.configPath),
       outputDir: path.resolve(options.outputDir),
       timezone: options.timezone,
-      executorOptions: options.dashboardDataDir ? { dashboardDataDir: path.resolve(options.dashboardDataDir) } : {}
+      executorOptions: {
+        ...(options.dashboardDataDir && { dashboardDataDir: path.resolve(options.dashboardDataDir) }),
+        ...(options.publishDir && { publishDir: path.resolve(options.publishDir) })
+      }
     });
     
     // Setup event handlers

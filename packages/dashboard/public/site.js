@@ -25,6 +25,19 @@
       select(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], true);
     });
   });
+  // A static page is written hourly, so "updated N min ago" is worked out here, at reading time.
+  var updated = document.querySelector('[data-updated]');
+  if (updated) {
+    var t = Date.parse(updated.getAttribute('data-updated'));
+    var minutes = Math.round((Date.now() - t) / 60000);
+    if (!isNaN(t) && minutes >= 0) {
+      updated.textContent = minutes < 2 ? 'Updated just now'
+        : minutes < 90 ? 'Updated ' + minutes + ' min ago'
+        : minutes < 48 * 60 ? 'Updated ' + Math.round(minutes / 60) + ' h ago'
+        : 'Updated ' + new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  }
+
   var start = document.getElementById('tab-' + location.hash.slice(1));
   if (start) select(start);
 

@@ -10,7 +10,7 @@ const yaml = require('js-yaml');
 const { NginxLogParser } = require('../../parser/src/parsers/nginx');
 const { CaddyLogParser } = require('../../parser/src/parsers/caddy');
 const { isLikelyBot } = require('../../parser/src/utils/bot-filter');
-const { writeDashboardFile } = require('../../parser/src/utils/dashboard-export');
+const { writeDashboardFile, toDashboardSchema } = require('../../parser/src/utils/dashboard-export');
 const { AnalyticsCalculator } = require('../../parser/src/utils/analytics-calculator');
 const { YamlDatasetWriter } = require('../../parser/src/utils/yaml-writer');
 
@@ -24,12 +24,14 @@ class JobExecutor {
    * @param {string} [options.timezone='UTC'] - Timezone for analytics processing
    * @param {string} [options.salt=''] - Salt for visitor hashing
    * @param {string} [options.dashboardDataDir] - Where the dashboard reads `<siteId>.yaml` (defaults to outputDir)
+   * @param {string} [options.publishDir] - Also write each site's page as static files: <publishDir>/<siteId>/
    */
   constructor(options = {}) {
     this.outputDir = options.outputDir || './analytics';
     this.timezone = options.timezone || 'UTC';
     this.salt = options.salt || '';
     this.dashboardDataDir = options.dashboardDataDir || this.outputDir;
+    this.publishDir = options.publishDir || null;
     
     // Initialize parser and writer
     this.logParser = new NginxLogParser('combined'); // Use combined format as default
@@ -46,6 +48,24 @@ class JobExecutor {
       totalErrors: 0,
       lastProcessingTime: null
     };
+  }
+
+  /**
+   * Writes the site's static page. The numbers are already saved, so a failure here is logged and
+   * the run still counts as done.
+   * @private
+   */
+  async publishSitePage(dataset, siteConfig) {
+    try {
+      const { publishSite } = require('@metrona/dashboard');
+      await publishSite({
+        data: toDashboardSchema(dataset),
+        site: { siteId: siteConfig.siteId, name: siteConfig.siteName, domain: siteConfig.domain },
+        dir: this.publishDir,
+      });
+    } catch (error) {
+      this.logProcessingError(siteConfig.siteId, 'publish', error, { publishDir: this.publishDir });
+    }
   }
 
   /**
@@ -168,6 +188,7 @@ class JobExecutor {
           outputPath = await this.yamlWriter.updateDataset(analytics, siteConfig, `${this.yamlWriter.filePrefix}-${siteId}.yaml`);
           const dataset = yaml.load(await fs.readFile(outputPath, 'utf8'));
           await writeDashboardFile(dataset, this.dashboardDataDir, siteId);
+          if (this.publishDir) await this.publishSitePage(dataset, siteConfig);
         } catch (yamlError) {
           // YAML generation failed - preserve existing data and report error (Requirement 10.2)
           this.logProcessingError(siteId, 'yaml_generation', yamlError, {

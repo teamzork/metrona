@@ -75,6 +75,9 @@ sudo npx metrona init --start     # from a clone in /opt/metrona
 npx metrona status                # each site, its log, and when its numbers were last written
 ```
 
+No admin area on your site? `init --stats` puts the numbers at `example.com/stats/` behind a
+password, served by your own web server: no extra service, port or hostname.
+
 Prefer containers? [compose.example.yaml](compose.example.yaml) runs the scheduler and the
 dashboard with the logs mounted read-only. [**Docs/setup.md**](Docs/setup.md) covers both, plus
 putting the dashboard behind HTTPS. For Caddy specifics and how counting works in detail, see
@@ -94,9 +97,10 @@ over stdio, and needs no open port: SSH is the login. See [Docs/mcp.md](Docs/mcp
 | | |
 | --- | --- |
 | `metrona demo` | The dashboard on sample data |
-| `metrona init` | Set it up on this server: config, secrets, systemd units, user, folders |
+| `metrona init` | Set it up on this server: config, secrets, systemd units, user, folders; `--stats` adds a password-protected page at `/stats/` on each site |
 | `metrona status` | Each site's log and when its numbers were last written |
 | `metrona run` | Process every site once, now (the scheduler does this hourly) |
+| `metrona publish` | Write each site's `/stats/` page as static files, now |
 | `metrona scheduler` · `metrona dashboard` | The two services, as systemd and Docker start them |
 | `metrona mcp` | The read-only MCP server over stdio |
 

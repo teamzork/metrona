@@ -51,7 +51,7 @@ function status(options) {
     console.log(`\n${file} · numbers in ${dataDir}\n`);
     for (const r of rows) {
       const mark = r.problems.length ? '⚠' : '✓';
-      const n = r.numbers ? `${r.numbers.pageviews} pageviews, ${r.numbers.visitors} visitors, updated ${ago(r.numbers.updated, now)}` : 'no numbers yet';
+      const n = r.numbers ? `${r.numbers.pageviews} ${r.numbers.pageviews === 1 ? 'pageview' : 'pageviews'}, ${r.numbers.visitors} ${r.numbers.visitors === 1 ? 'visitor' : 'visitors'}, updated ${ago(r.numbers.updated, now)}` : 'no numbers yet';
       console.log(`${mark} ${r.site.siteId} (${r.site.domain})`);
       console.log(`    ${n}`);
       console.log(`    log: ${r.log}`);

@@ -23,11 +23,12 @@
     "start": "node src/daemon.js"
   },
   "dependencies": {
-    "@metrona/shared": "^1.0.0",
+    "@metrona/dashboard": "^1.0.0",
     "@metrona/parser": "^1.0.0",
-    "node-cron": "^3.0.3",
+    "@metrona/shared": "^1.0.0",
     "chokidar": "^3.5.3",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "@types/jest": "^29.0.0",

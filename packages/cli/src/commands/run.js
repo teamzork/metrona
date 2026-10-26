@@ -5,7 +5,7 @@
  */
 
 const fs = require('fs');
-const { DEFAULTS, configPath, loadConfig, dashboardDataDir, loadEnvFile, enabledSites } = require('./common');
+const { DEFAULTS, configPath, loadConfig, dashboardDataDir, publishDir, loadEnvFile, enabledSites } = require('./common');
 
 /** Holds console output back until restore(). */
 function silence() {
@@ -29,7 +29,8 @@ async function run(options) {
   fs.mkdirSync(outputDir, { recursive: true });
 
   const { JobExecutor } = require('@metrona/scheduler');
-  const executor = new JobExecutor({ outputDir, dashboardDataDir: dashboardData, salt });
+  const publish = publishDir(config, options.publishDir);
+  const executor = new JobExecutor({ outputDir, dashboardDataDir: dashboardData, salt, publishDir: publish });
   let failed = 0;
   for (const site of enabledSites(config, options.site)) {
     // The executor logs every step for the daemon's journal; here one line per site is enough.
@@ -46,7 +47,7 @@ async function run(options) {
       console.error(`✗ ${site.siteId}: ${reason}`);
     }
   }
-  console.log(`\nWrote ${dashboardData}`);
+  console.log(`\nWrote ${dashboardData}${publish ? ` and the pages in ${publish}` : ''}`);
   if (process.getuid && process.getuid() === 0) {
     console.log('Ran as root: if the services run as the metrona user, prefer `sudo -u metrona metrona run` so they can keep writing these files.');
   }

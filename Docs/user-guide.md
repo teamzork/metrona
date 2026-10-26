@@ -15,9 +15,9 @@ has already set Metrona up for you, and you just open it in your browser.
 
 ## Opening the dashboard
 
-Your administrator gives you an address, often something like `metrona.yoursite.com`, and a
-password. Open the address in any browser, on a computer or a phone. Bookmark it; there's nothing
-to install.
+Your administrator gives you an address and a password. Often it's your own site with `/stats/` at
+the end, like `example.com/stats/`; sometimes a separate address like `metrona.example.com`. Open it
+in any browser, on a computer or a phone. Bookmark it; there's nothing to install.
 
 The numbers update **once an hour**. If you just published something, give it an hour before you
 look for its first visitors.

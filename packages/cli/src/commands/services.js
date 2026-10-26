@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { DEFAULTS, configPath } = require('./common');
+const { DEFAULTS, configPath, loadConfig, publishDir } = require('./common');
 
 /** The hourly job. Options are the scheduler daemon's own (see `metrona scheduler --help`). */
 async function scheduler(args) {
@@ -14,8 +14,14 @@ async function scheduler(args) {
   if (!args.some((a) => a === '-c' || a === '--config')) withDefaults.push('--config', configPath());
   if (!args.some((a) => a === '-o' || a === '--output')) withDefaults.push('--output', DEFAULTS.datasets);
   if (!args.includes('--dashboard-data')) withDefaults.push('--dashboard-data', DEFAULTS.dashboardData);
+  if (!args.includes('--publish-dir')) {
+    const at = withDefaults.findIndex((a) => a === '-c' || a === '--config');
+    const config = loadConfig(withDefaults[at + 1]);
+    const dir = publishDir(config);
+    if (dir) withDefaults.push('--publish-dir', dir);
+  }
   // Make the output folders, so a fresh volume or container needs nothing done first.
-  for (const flag of ['--output', '-o', '--dashboard-data']) {
+  for (const flag of ['--output', '-o', '--dashboard-data', '--publish-dir']) {
     const at = withDefaults.indexOf(flag);
     if (at > -1 && withDefaults[at + 1]) fs.mkdirSync(withDefaults[at + 1], { recursive: true });
   }

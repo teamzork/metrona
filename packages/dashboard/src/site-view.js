@@ -300,7 +300,7 @@ function renderSitePage(view, { assetBase = '/static', backHref = null, logout =
     <div>
       ${backHref ? `<a class="mtr-back" href="${esc(backHref)}">← All sites</a>` : ''}
       <h1 class="mtr-site">${esc(view.domain || view.name)}</h1>
-      <div class="mtr-updated">${esc(updatedText(view.updated, now))}</div>
+      <div class="mtr-updated"${view.updated ? ` data-updated="${esc(view.updated)}"` : ''}>${esc(updatedText(view.updated, now))}</div>
     </div>
     ${logout ? '<button type="button" class="mtr-btn" data-logout>Sign out</button>' : ''}
   </header>

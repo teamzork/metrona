@@ -44,6 +44,9 @@ program
   .option('--server <nginx|caddy>', 'the web server writing the access logs')
   .option('--site <domain=logPath>', 'a site and its access log (repeat for more)', collect, [])
   .option('--cloudflare', "the sites are behind Cloudflare's proxy")
+  .option('--stats', 'also show the numbers on each site at /stats/, behind a password')
+  .option('--no-stats', "don't ask about /stats/")
+  .option('--new-password', 'with --stats: replace the /stats/ password')
   .option('--port <port>', 'dashboard port on 127.0.0.1', '3001')
   .option('--start', 'enable and start both services when done')
   .option('-y, --yes', "don't ask: take everything from the options")
@@ -62,8 +65,18 @@ program
   .option('-o, --output <dir>', 'datasets folder (default /var/lib/metrona/datasets)')
   .option('--dashboard-data <dir>', "where to write each site's numbers (default: the config's dashboard.dataDir)")
   .option('--site <siteId>', 'only this site')
+  .option('--publish-dir <dir>', "also write each site's static page here (default: the config's publish.dir)")
   .option('--verbose', "show the processing log, not just each site's result")
   .action(action((opts) => require('./commands/run').run(opts)));
+
+program
+  .command('publish')
+  .description("Write each site's page as static files now, for the web server to serve at /stats/")
+  .option('-c, --config <file>', 'metrona.yaml (default /etc/metrona/metrona.yaml, or METRONA_CONFIG)')
+  .option('--dir <dir>', "where to write (default: the config's publish.dir)")
+  .option('--dashboard-data <dir>', "where each site's numbers are (default: the config's dashboard.dataDir)")
+  .option('--site <siteId>', 'only this site')
+  .action(action((opts) => require('./commands/publish').publish(opts)));
 
 program
   .command('status')

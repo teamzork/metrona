@@ -9,6 +9,10 @@
  *
  * --root <dir> writes everything under <dir> instead of / and skips the system steps, to see
  * what init would write (and for tests). An existing VISITOR_HASH_SALT is always kept.
+ *
+ * --stats is for sites with no dashboard of their own: the scheduler also writes each site's page
+ * as static files (publish.dir), and init writes a password file and, per site, an nginx or
+ * Caddy snippet that serves the page at /stats/ behind that password.
  */
 
 const crypto = require('crypto');
@@ -19,8 +23,15 @@ const yaml = require('js-yaml');
 const { DEFAULTS } = require('./common');
 
 const SERVERS = {
-  nginx: { group: 'adm', logDir: '/var/log/nginx', format: 'nginx', example: (d) => `/var/log/nginx/${d}-access.log` },
-  caddy: { group: 'caddy', logDir: '/var/log/caddy', format: 'caddy', example: (d) => `/var/log/caddy/${d.split('.')[0]}.log` },
+  nginx: { group: 'adm', web: 'www-data', logDir: '/var/log/nginx', format: 'nginx', example: (d) => `/var/log/nginx/${d}-access.log` },
+  caddy: { group: 'caddy', web: 'caddy', logDir: '/var/log/caddy', format: 'caddy', example: (d) => `/var/log/caddy/${d.split('.')[0]}.log` },
+};
+
+const STATS = {
+  path: '/stats/',
+  user: 'stats',
+  htpasswd: '/etc/metrona/stats.htpasswd',
+  snippets: '/etc/metrona/web',
 };
 
 const CLOUDFLARE_NGINX = 'https://github.com/teamzork/metrona/blob/main/templates/nginx/cloudflare.conf';
@@ -37,9 +48,9 @@ function parseSiteOption(value) {
   return { domain: value.slice(0, at).trim().toLowerCase(), logPath: value.slice(at + 1).trim() };
 }
 
-function buildConfig({ server, sites, cloudflare, port }) {
+function buildConfig({ server, sites, cloudflare, port, stats }) {
   const kind = SERVERS[server];
-  return {
+  const config = {
     version: '1.0',
     sites: sites.map(({ domain, logPath }) => {
       const bare = domain.replace(/^www\./, '');
@@ -66,6 +77,52 @@ function buildConfig({ server, sites, cloudflare, port }) {
       frameAncestors: [],
     },
   };
+  if (stats) config.publish = { dir: DEFAULTS.publish };
+  return config;
+}
+
+/** "k7m2-qx9p-…": easy to read aloud and type, no 0/O or 1/l. */
+function newPassword() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = crypto.randomBytes(16);
+  const chars = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join('');
+  return chars.match(/.{4}/g).join('-');
+}
+
+/** The web server's part of /stats/ for one site: nginx include or Caddy import. */
+function statsSnippet(server, site, hash) {
+  const dir = `${DEFAULTS.publish}/${site.siteId}`;
+  if (server === 'nginx') {
+    return `# Metrona: ${site.domain}'s stats page at ${STATS.path}, written by \`metrona init\`.
+# In ${site.domain}'s server block (the HTTPS one), add:
+#   include ${STATS.snippets}/${site.siteId}.nginx.conf;
+# then: sudo nginx -t && sudo systemctl reload nginx
+location = /stats { return 301 /stats/; }
+location ${STATS.path} {
+    alias ${dir}/;
+    index index.html;
+    auth_basic "Stats for ${site.domain}";
+    auth_basic_user_file ${STATS.htpasswd};
+    add_header X-Robots-Tag "noindex, nofollow" always;
+    add_header Cache-Control "no-cache" always;
+}
+`;
+  }
+  return `# Metrona: ${site.domain}'s stats page at ${STATS.path}, written by \`metrona init\`.
+# Inside ${site.domain}'s site block, add:
+#   import ${STATS.snippets}/${site.siteId}.caddy
+# then: sudo systemctl reload caddy
+redir /stats /stats/
+handle_path /stats/* {
+	root * ${dir}
+	basic_auth {
+		${STATS.user} ${hash}
+	}
+	header X-Robots-Tag "noindex, nofollow"
+	header Cache-Control "no-cache"
+	file_server
+}
+`;
 }
 
 const CONFIG_HEADER = `# Metrona's configuration, written by \`metrona init\`. The scheduler and the dashboard both read
@@ -173,7 +230,11 @@ async function ask(options) {
   if (cloudflare === undefined) {
     ({ cloudflare } = await inquirer.prompt([{ type: 'confirm', name: 'cloudflare', message: "Are these sites behind Cloudflare's proxy (orange cloud)?", default: false }]));
   }
-  return { server, sites, cloudflare };
+  let stats = options.stats;
+  if (stats === undefined) {
+    ({ stats } = await inquirer.prompt([{ type: 'confirm', name: 'stats', message: 'Show the numbers on each site at /stats/, behind a password? (For sites without an admin dashboard of their own.)', default: true }]));
+  }
+  return { server, sites, cloudflare, stats };
 }
 
 function write(file, text, mode) {
@@ -208,7 +269,7 @@ async function init(options) {
   let answers;
   if (options.yes || (options.server && options.site && options.site.length)) {
     if (!options.server || !options.site || !options.site.length) throw new Error('With --yes, pass --server and at least one --site domain=logPath.');
-    answers = { server: options.server, sites: options.site.map(parseSiteOption), cloudflare: Boolean(options.cloudflare) };
+    answers = { server: options.server, sites: options.site.map(parseSiteOption), cloudflare: Boolean(options.cloudflare), stats: Boolean(options.stats) };
   } else {
     answers = await ask(options);
   }
@@ -242,6 +303,32 @@ async function init(options) {
   }
   for (const dir of [DEFAULTS.datasets, DEFAULTS.dashboardData]) fs.mkdirSync(at(dir), { recursive: true });
 
+  // /stats/: the password (kept unless --new-password) and the web server snippets.
+  let password = null;
+  const statsFiles = [];
+  if (answers.stats) {
+    fs.mkdirSync(at(DEFAULTS.publish), { recursive: true });
+    const bcrypt = require('bcryptjs');
+    const htpasswd = at(STATS.htpasswd);
+    let hash = null;
+    if (fs.existsSync(htpasswd) && !options.newPassword) {
+      const line = fs.readFileSync(htpasswd, 'utf8').split('\n').find((l) => l.startsWith(`${STATS.user}:`));
+      hash = line ? line.slice(STATS.user.length + 1).trim() : null;
+    }
+    if (!hash) {
+      password = newPassword();
+      hash = bcrypt.hashSync(password, 12);
+      write(htpasswd, `${STATS.user}:${hash}\n`, 0o640);
+      written.push(htpasswd);
+    }
+    for (const site of config.sites) {
+      const file = at(`${STATS.snippets}/${site.siteId}.${answers.server === 'nginx' ? 'nginx.conf' : 'caddy'}`);
+      write(file, statsSnippet(answers.server, site, hash), 0o640);
+      written.push(file);
+      statsFiles.push(file);
+    }
+  }
+
   if (system) {
     try {
       execFileSync('id', ['metrona'], { stdio: 'ignore' });
@@ -253,19 +340,40 @@ async function init(options) {
     else console.warn(`⚠ There's no "${group}" group here; make sure the metrona user can read the logs.`);
     sh('chown', ['-R', 'metrona:metrona', '/var/lib/metrona']);
     sh('chown', ['root:metrona', configFile, envFile]);
+    if (answers.stats) {
+      // The web server reads the password file and snippets as its own user.
+      const web = SERVERS[answers.server].web;
+      const files = [...statsFiles, ...(fs.existsSync(at(STATS.htpasswd)) ? [at(STATS.htpasswd)] : [])];
+      if (groupExists(web)) sh('chown', [`root:${web}`, ...files]);
+      else for (const f of files) fs.chmodSync(f, 0o644);
+    }
     sh('systemctl', ['daemon-reload']);
-    if (options.start) sh('systemctl', ['enable', '--now', 'metrona-scheduler', 'metrona-dashboard']);
+    if (options.start) {
+      // restart, not just start: a running scheduler would keep its old config and groups.
+      sh('systemctl', ['enable', 'metrona-scheduler', 'metrona-dashboard']);
+      sh('systemctl', ['restart', 'metrona-scheduler', 'metrona-dashboard']);
+    }
   }
 
-  return { written, config, system, started: system && Boolean(options.start), cloudflare: answers.cloudflare, server: answers.server };
+  return { written, config, system, started: system && Boolean(options.start), cloudflare: answers.cloudflare, server: answers.server, stats: answers.stats, password, statsFiles };
 }
 
-function printNextSteps({ written, config, system, started, cloudflare, server }) {
+function printNextSteps({ written, config, system, started, cloudflare, server, stats, password, statsFiles = [] }) {
   console.log('\nWrote:');
   for (const f of written) console.log(`  ${f}`);
   console.log(`\nSites: ${config.sites.map((s) => `${s.siteId} (${s.logPath})`).join(', ')}`);
   if (cloudflare && server === 'nginx') {
     console.log(`\nBehind Cloudflare with nginx: the log must carry the visitor's IP, not Cloudflare's. Use\n  ${CLOUDFLARE_NGINX}\nand point each site's logPath at the log it writes.`);
+  }
+  if (stats) {
+    console.log(`\nStats pages, behind a password (user "${STATS.user}"):`);
+    for (const s of config.sites) console.log(`  https://${s.domain}${STATS.path}`);
+    if (password) console.log(`  Password: ${password}\n  (shown only now; only its hash is stored. A new one: metrona init --stats --new-password --force)`);
+    else console.log('  The existing password is kept.');
+    const how = server === 'nginx' ? 'include' : 'import';
+    console.log(`\n  To switch them on, ${how} each site's snippet in its ${server === 'nginx' ? 'server' : 'site'} block:`);
+    for (const f of statsFiles) console.log(`    ${how} ${server === 'nginx' ? `${f};` : f}`);
+    console.log(`  then ${server === 'nginx' ? 'sudo nginx -t && sudo systemctl reload nginx' : 'sudo systemctl reload caddy'}`);
   }
   console.log('\nNext:');
   if (!system) console.log('  (--root: nothing was installed; copy the files into place to use them)');
@@ -275,4 +383,4 @@ function printNextSteps({ written, config, system, started, cloudflare, server }
   console.log('  https://github.com/teamzork/metrona/blob/main/Docs/setup.md#5-put-the-dashboard-online\n');
 }
 
-module.exports = { init, printNextSteps, buildConfig, siteIdFor, parseSiteOption, units, envFileText };
+module.exports = { init, printNextSteps, buildConfig, siteIdFor, parseSiteOption, units, envFileText, statsSnippet, newPassword, STATS };

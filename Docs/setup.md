@@ -39,6 +39,8 @@ sudo npx metrona init --start
   and makes `/var/lib/metrona`,
 - writes both systemd units, with the log folders and the group filled in, and starts them
   (`--start`). The scheduler processes every site right away, then hourly.
+- if you answer yes to the `/stats/` question (or pass `--stats`), sets up a stats page on each site
+  itself: see [A stats page on the site: /stats/](#a-stats-page-on-the-site-stats).
 
 Everything can also be given as options, for scripts:
 
@@ -53,7 +55,56 @@ read them first. Then check:
 npx metrona status          # each site: is its log readable, when were its numbers last written
 ```
 
-What's left is putting the dashboard online, in [step 5](#5-put-the-dashboard-online).
+What's left is putting the dashboard online, in [step 5](#5-put-the-dashboard-online), or using
+the `/stats/` page below instead.
+
+## A stats page on the site: /stats/
+
+For a site with no admin area of its own, this is the simplest way to show its numbers: no
+dashboard service, port, hostname or certificate. The scheduler writes the site's page as plain
+files after every run, and the web server that already runs the site serves them at
+`https://example.com/stats/` behind a password.
+
+```bash
+sudo npx metrona init --stats --start
+```
+
+`init --stats`:
+
+- adds `publish: { dir: /var/lib/metrona/public }` to `metrona.yaml`, so the scheduler writes
+  `/var/lib/metrona/public/<siteId>/index.html` (with its `assets/`) after each run;
+- makes a password, shows it once, and stores only its bcrypt hash in `/etc/metrona/stats.htpasswd`
+  (user `stats`). Running init again keeps it; `--new-password --force` replaces it;
+- writes one snippet per site in `/etc/metrona/web/`, readable by the web server only.
+
+It doesn't edit your web server's configuration. Add one line to each site, then reload:
+
+**nginx**, inside the site's HTTPS `server { … }` block:
+
+```nginx
+include /etc/metrona/web/example-com.nginx.conf;
+```
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+**Caddy**, inside the site's block:
+
+```
+import /etc/metrona/web/example-com.caddy
+```
+
+```bash
+sudo systemctl reload caddy
+```
+
+The snippets serve the folder at `/stats/` with basic authentication, add `X-Robots-Tag: noindex`
+so search engines skip it, and redirect `/stats` to `/stats/`. On nginx, the password file needs
+bcrypt support in the system's `crypt()`, which Ubuntu 22.04+ and Debian 12+ have.
+
+`npx metrona publish` writes the pages right away from the numbers already on disk. By hand: set
+`publish.dir` in `metrona.yaml`; `metrona scheduler` and `metrona run` pick it up.
 
 ## With Docker
 
