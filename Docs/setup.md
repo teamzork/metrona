@@ -58,6 +58,27 @@ npx metrona status          # each site: is its log readable, when were its numb
 What's left is putting the dashboard online, in [step 5](#5-put-the-dashboard-online), or using
 the `/stats/` page below instead.
 
+### Adding a site later
+
+Run `init` once per server. To count one more site, use `add-site`. It keeps the sites already set
+up, and everything else in `metrona.yaml`:
+
+```bash
+sudo npx metrona add-site blog.example.com=/var/log/nginx/blog.example.com-access.log
+```
+
+It works out the web server from the other sites (`--server` if they're mixed), checks the site
+like the scheduler does, and refuses a domain that's already there. It copies the old config to
+`metrona.yaml.bak` before writing it, and keeps the comments at the top. Then it restarts the
+Metrona services that are running.
+
+If the install already has `/stats/` pages, the new site gets one too, behind the same password.
+`--stats` adds one where there were none yet, and `--no-stats` leaves it out. The command ends by
+printing the two lines to add to the site's `server` (or Caddy site) block: its `access_log` and
+its `/stats/` snippet.
+
+`init --force` is for starting over. It writes `metrona.yaml` with only the sites you give it.
+
 ## A stats page on the site: /stats/
 
 For a site with no admin area of its own, this is the simplest way to show its numbers: no
@@ -76,6 +97,8 @@ sudo npx metrona init --stats --start
 - makes a password, shows it once, and stores only its bcrypt hash in `/etc/metrona/stats.htpasswd`
   (user `stats`). Running init again keeps it; `--new-password --force` replaces it;
 - writes one snippet per site in `/etc/metrona/web/`, readable by the web server only.
+
+A site added later with `metrona add-site` gets its snippet the same way, with the same password.
 
 It doesn't edit your web server's configuration. Add one line to each site, then reload:
 

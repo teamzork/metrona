@@ -416,8 +416,8 @@ class JobExecutor {
       throw new Error(`Unsupported log format: ${siteConfig.format} (use 'nginx' or 'caddy')`);
     }
     
-    // Validate domain format (basic check)
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9])*$/;
+    // Validate domain format (basic check). A label can be one character: x.com, a.example.org
+    const domainRegex = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     if (!domainRegex.test(siteConfig.domain)) {
       throw new Error(`Invalid domain format: ${siteConfig.domain}`);
     }

@@ -180,6 +180,16 @@ describe('Enhanced Error Handling and Logging', () => {
       await fs.writeFile(testLogFile, '127.0.0.1 - - [01/Jan/2024:00:00:00 +0000] "GET / HTTP/1.1" 200 1234 "-" "Mozilla/5.0"\n');
     });
 
+    test('accepts the domains the config accepts, one-letter labels included', () => {
+      const site = { siteId: 's', siteName: 'S', logPath: testLogFile };
+      for (const domain of ['x.com', 'b.example.org', 'example.com', 'a-b.c.io']) {
+        expect(() => executor.validateSiteConfig({ ...site, domain })).not.toThrow();
+      }
+      for (const domain of ['-x.com', 'x-.com', 'a..b', '.example.com']) {
+        expect(() => executor.validateSiteConfig({ ...site, domain })).toThrow(/Invalid domain format/);
+      }
+    });
+
     test('should perform pre-flight checks correctly', async () => {
       const validConfig = {
         siteId: 'test-site',

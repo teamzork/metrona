@@ -48,26 +48,28 @@ function parseSiteOption(value) {
   return { domain: value.slice(0, at).trim().toLowerCase(), logPath: value.slice(at + 1).trim() };
 }
 
+/** One `sites:` entry, as init and add-site write it. */
+function siteEntry(server, { domain, logPath }, cloudflare) {
+  const bare = domain.replace(/^www\./, '');
+  const site = {
+    siteId: siteIdFor(domain),
+    siteName: bare,
+    domain: bare,
+    logPath,
+    format: SERVERS[server].format,
+    schedule: 'hourly',
+    timezone: 'UTC',
+  };
+  // www. only for a bare domain: example.com has www.example.com, blog.example.com doesn't
+  if (bare.split('.').length === 2) site.aliases = [`www.${bare}`];
+  if (cloudflare && server === 'caddy') site.parserOptions = { clientIpHeader: 'Cf-Connecting-Ip' };
+  return site;
+}
+
 function buildConfig({ server, sites, cloudflare, port, stats }) {
-  const kind = SERVERS[server];
   const config = {
     version: '1.0',
-    sites: sites.map(({ domain, logPath }) => {
-      const bare = domain.replace(/^www\./, '');
-      const site = {
-        siteId: siteIdFor(domain),
-        siteName: bare,
-        domain: bare,
-        logPath,
-        format: kind.format,
-        schedule: 'hourly',
-        timezone: 'UTC',
-      };
-      // www. only for a bare domain: example.com has www.example.com, blog.example.com doesn't
-      if (bare.split('.').length === 2) site.aliases = [`www.${bare}`];
-      if (cloudflare && server === 'caddy') site.parserOptions = { clientIpHeader: 'Cf-Connecting-Ip' };
-      return site;
-    }),
+    sites: sites.map((s) => siteEntry(server, s, cloudflare)),
     dashboard: {
       host: '127.0.0.1',
       port,
@@ -90,10 +92,10 @@ function newPassword() {
 }
 
 /** The web server's part of /stats/ for one site: nginx include or Caddy import. */
-function statsSnippet(server, site, hash) {
-  const dir = `${DEFAULTS.publish}/${site.siteId}`;
+function statsSnippet(server, site, hash, publishDir = DEFAULTS.publish) {
+  const dir = `${publishDir}/${site.siteId}`;
   if (server === 'nginx') {
-    return `# Metrona: ${site.domain}'s stats page at ${STATS.path}, written by \`metrona init\`.
+    return `# Metrona: ${site.domain}'s stats page at ${STATS.path}. Written by metrona init or add-site.
 # In ${site.domain}'s server block (the HTTPS one), add:
 #   include ${STATS.snippets}/${site.siteId}.nginx.conf;
 # then: sudo nginx -t && sudo systemctl reload nginx
@@ -108,7 +110,7 @@ location ${STATS.path} {
 }
 `;
   }
-  return `# Metrona: ${site.domain}'s stats page at ${STATS.path}, written by \`metrona init\`.
+  return `# Metrona: ${site.domain}'s stats page at ${STATS.path}. Written by metrona init or add-site.
 # Inside ${site.domain}'s site block, add:
 #   import ${STATS.snippets}/${site.siteId}.caddy
 # then: sudo systemctl reload caddy
@@ -257,6 +259,43 @@ function groupExists(name) {
 }
 
 /**
+ * The /stats/ files: the password file (its hash kept unless newPassword) and a snippet per site.
+ * @returns {{ password: string|null, files: string[], written: string[] }} password is set only
+ *   when a new one was made; files are the snippets.
+ */
+function writeStats({ at, server, sites, newPassword: replace, publishDir = DEFAULTS.publish }) {
+  fs.mkdirSync(at(publishDir), { recursive: true });
+  const htpasswd = at(STATS.htpasswd);
+  const written = [];
+  let password = null;
+  let hash = null;
+  if (fs.existsSync(htpasswd) && !replace) {
+    const line = fs.readFileSync(htpasswd, 'utf8').split('\n').find((l) => l.startsWith(`${STATS.user}:`));
+    hash = line ? line.slice(STATS.user.length + 1).trim() : null;
+  }
+  if (!hash) {
+    password = newPassword();
+    hash = require('bcryptjs').hashSync(password, 12);
+    write(htpasswd, `${STATS.user}:${hash}\n`, 0o640);
+    written.push(htpasswd);
+  }
+  const files = sites.map((site) => {
+    const file = at(`${STATS.snippets}/${site.siteId}.${server === 'nginx' ? 'nginx.conf' : 'caddy'}`);
+    write(file, statsSnippet(server, site, hash, publishDir), 0o640);
+    return file;
+  });
+  return { password, files, written: [...written, ...files] };
+}
+
+/** The web server reads the password file and snippets as its own user. */
+function ownStatsFiles(server, files) {
+  const web = SERVERS[server].web;
+  const existing = files.filter((f) => fs.existsSync(f));
+  if (groupExists(web)) sh('chown', [`root:${web}`, ...existing]);
+  else for (const f of existing) fs.chmodSync(f, 0o644);
+}
+
+/**
  * @returns {Promise<{ written: string[], config: Object }>}
  */
 async function init(options) {
@@ -305,28 +344,11 @@ async function init(options) {
 
   // /stats/: the password (kept unless --new-password) and the web server snippets.
   let password = null;
-  const statsFiles = [];
+  let statsFiles = [];
   if (answers.stats) {
-    fs.mkdirSync(at(DEFAULTS.publish), { recursive: true });
-    const bcrypt = require('bcryptjs');
-    const htpasswd = at(STATS.htpasswd);
-    let hash = null;
-    if (fs.existsSync(htpasswd) && !options.newPassword) {
-      const line = fs.readFileSync(htpasswd, 'utf8').split('\n').find((l) => l.startsWith(`${STATS.user}:`));
-      hash = line ? line.slice(STATS.user.length + 1).trim() : null;
-    }
-    if (!hash) {
-      password = newPassword();
-      hash = bcrypt.hashSync(password, 12);
-      write(htpasswd, `${STATS.user}:${hash}\n`, 0o640);
-      written.push(htpasswd);
-    }
-    for (const site of config.sites) {
-      const file = at(`${STATS.snippets}/${site.siteId}.${answers.server === 'nginx' ? 'nginx.conf' : 'caddy'}`);
-      write(file, statsSnippet(answers.server, site, hash), 0o640);
-      written.push(file);
-      statsFiles.push(file);
-    }
+    const stats = writeStats({ at, server: answers.server, sites: config.sites, newPassword: options.newPassword });
+    ({ password, files: statsFiles } = stats);
+    written.push(...stats.written);
   }
 
   if (system) {
@@ -340,13 +362,7 @@ async function init(options) {
     else console.warn(`⚠ There's no "${group}" group here; make sure the metrona user can read the logs.`);
     sh('chown', ['-R', 'metrona:metrona', '/var/lib/metrona']);
     sh('chown', ['root:metrona', configFile, envFile]);
-    if (answers.stats) {
-      // The web server reads the password file and snippets as its own user.
-      const web = SERVERS[answers.server].web;
-      const files = [...statsFiles, ...(fs.existsSync(at(STATS.htpasswd)) ? [at(STATS.htpasswd)] : [])];
-      if (groupExists(web)) sh('chown', [`root:${web}`, ...files]);
-      else for (const f of files) fs.chmodSync(f, 0o644);
-    }
+    if (answers.stats) ownStatsFiles(answers.server, [...statsFiles, at(STATS.htpasswd)]);
     sh('systemctl', ['daemon-reload']);
     if (options.start) {
       // restart, not just start: a running scheduler would keep its old config and groups.
@@ -383,4 +399,4 @@ function printNextSteps({ written, config, system, started, cloudflare, server, 
   console.log('  https://github.com/teamzork/metrona/blob/main/Docs/setup.md#5-put-the-dashboard-online\n');
 }
 
-module.exports = { init, printNextSteps, buildConfig, siteIdFor, parseSiteOption, units, envFileText, statsSnippet, newPassword, STATS };
+module.exports = { init, printNextSteps, buildConfig, siteEntry, siteIdFor, parseSiteOption, units, envFileText, statsSnippet, newPassword, writeStats, ownStatsFiles, write, sh, groupExists, SERVERS, STATS, CONFIG_HEADER };

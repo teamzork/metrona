@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @fileoverview The `metrona` command: try it (demo), set it up (init), run it (scheduler,
+ * @fileoverview The `metrona` command: try it (demo), set it up (init, add-site), run it (scheduler,
  * dashboard, run), check it (status), and ask an agent about it (mcp).
  */
 
@@ -55,6 +55,22 @@ program
   .action(action(async (opts) => {
     const init = require('./commands/init');
     init.printNextSteps(await init.init(opts));
+  }));
+
+program
+  .command('add-site')
+  .description('Add a site to this Metrona, keeping the sites already set up')
+  .argument('<domain=logPath>', 'the site and its access log, e.g. example.com=/var/log/nginx/example.com-access.log')
+  .option('--server <nginx|caddy>', 'the web server writing the log (default: the one the other sites use)')
+  .option('--cloudflare', "the site is behind Cloudflare's proxy")
+  .option('--stats', 'show its numbers at /stats/ on the site, behind the password (default when other sites do)')
+  .option('--no-stats', 'no /stats/ page for this site')
+  .option('-c, --config <file>', 'metrona.yaml (default /etc/metrona/metrona.yaml, or METRONA_CONFIG)')
+  .option('--no-restart', "don't restart the running Metrona services")
+  .option('--root <dir>', "change files under <dir> instead of /, and don't touch the system")
+  .action(action(async (site, opts) => {
+    const addSite = require('./commands/add-site');
+    addSite.printNextSteps(await addSite.addSite({ ...opts, site }));
   }));
 
 program
